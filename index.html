@@ -14,10 +14,21 @@
   }
   #status.ok { color: #3fb950; }
   #status.err { color: #f85149; }
+  #startOverlay {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: #0d0e14; z-index: 20;
+  }
+  #startBtn {
+    font: 16px monospace; color: #0d0e14; background: #3fb950; border: none;
+    padding: 14px 28px; border-radius: 6px; cursor: pointer;
+  }
+  #startBtn:disabled { opacity: 0.5; cursor: default; }
+  #startBtn:hover:not(:disabled) { background: #56d364; }
 </style>
 </head>
 <body>
-<div id="status">ulanmoqda...</div>
+<div id="status"></div>
+<div id="startOverlay"><button id="startBtn">Start session</button></div>
 <div id="term"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
@@ -57,29 +68,57 @@ const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
 const wsUrl = wsParam
   ? `${wsParam.replace(/\/$/, "")}/?token=${encodeURIComponent(token)}`
   : `${wsProto}//${location.host}/?token=${encodeURIComponent(token)}`;
-const ws = new WebSocket(wsUrl);
-ws.binaryType = "arraybuffer";
 
-ws.onopen = () => {
-  setStatus("ulandi", "ok");
-  sendResize();
-};
-ws.onclose = (e) => setStatus(e.code === 4001 ? "token xato" : "uzildi", "err");
-ws.onerror = () => setStatus("xato", "err");
+const startOverlay = document.getElementById("startOverlay");
+const startBtn = document.getElementById("startBtn");
+let ws = null;
 
-// server -> terminal: darhol yoz, kutmasdan (backpressure'ni brauzer o'zi boshqaradi)
-ws.onmessage = (ev) => {
-  const data = typeof ev.data === "string" ? ev.data : new Uint8Array(ev.data);
-  term.write(data);
-};
+// Sahifa ochilganda ULANMAYDI — faqat tugma bosilganda session boshlanadi.
+startBtn.addEventListener("click", startSession);
+
+function startSession() {
+  startBtn.disabled = true;
+  startBtn.textContent = "Ulanmoqda...";
+  setStatus("ulanmoqda...", "");
+
+  ws = new WebSocket(wsUrl);
+  ws.binaryType = "arraybuffer";
+
+  ws.onopen = () => {
+    startOverlay.remove();
+    setStatus("ulandi", "ok");
+    fitAddon.fit();
+    sendResize();
+  };
+
+  ws.onclose = (e) => {
+    setStatus(e.code === 4001 ? "token xato" : "uzildi", "err");
+    resetToStart();
+  };
+
+  ws.onerror = () => setStatus("xato", "err");
+
+  // server -> terminal: darhol yoz, kutmasdan (backpressure'ni brauzer o'zi boshqaradi)
+  ws.onmessage = (ev) => {
+    const data = typeof ev.data === "string" ? ev.data : new Uint8Array(ev.data);
+    term.write(data);
+  };
+}
+
+function resetToStart() {
+  // Ulanish uzilsa, qayta "Start session" tugmasini ko'rsatamiz.
+  startBtn.disabled = false;
+  startBtn.textContent = "Start session";
+  if (!document.body.contains(startOverlay)) document.body.appendChild(startOverlay);
+}
 
 // terminal -> server: har bosilgan tugma darhol jo'natiladi, kechikishsiz
 term.onData((data) => {
-  if (ws.readyState === WebSocket.OPEN) ws.send(data);
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(data);
 });
 
 function sendResize() {
-  if (ws.readyState === WebSocket.OPEN) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(`\x01${term.cols},${term.rows}`);
   }
 }
