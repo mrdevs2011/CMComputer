@@ -18,17 +18,30 @@
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     background: #0d0e14; z-index: 20;
   }
+  #startBox { display: flex; flex-direction: column; gap: 10px; width: min(90vw, 420px); }
+  #tokenInput {
+    font: 14px monospace; color: #ddd; background: #1b1d27; border: 1px solid #333;
+    border-radius: 6px; padding: 10px 12px; outline: none;
+  }
+  #tokenInput:focus { border-color: #3fb950; }
   #startBtn {
     font: 16px monospace; color: #0d0e14; background: #3fb950; border: none;
     padding: 14px 28px; border-radius: 6px; cursor: pointer;
   }
   #startBtn:disabled { opacity: 0.5; cursor: default; }
   #startBtn:hover:not(:disabled) { background: #56d364; }
+  #inputErr { font: 12px monospace; color: #f85149; min-height: 14px; }
 </style>
 </head>
 <body>
 <div id="status"></div>
-<div id="startOverlay"><button id="startBtn">Start session</button></div>
+<div id="startOverlay">
+  <div id="startBox">
+    <input id="tokenInput" type="text" placeholder="Enter your access token yoki to'liq URL" autocomplete="off" />
+    <div id="inputErr"></div>
+    <button id="startBtn">Start session</button>
+  </div>
+</div>
 <div id="term"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
@@ -60,23 +73,52 @@ try {
 fitAddon.fit();
 window.addEventListener("resize", () => fitAddon.fit());
 
-const token = new URLSearchParams(location.search).get("token") || "";
-// ws param: masalan wss://domenim.uz — sayt Vercel'da, backend esa boshqa joyda (ngrok tunnel) ishlaydi.
-// Berilmasa, sahifa qayerda ochilgan bo'lsa, o'sha joyga ulanishga urinadi (local test uchun).
-const wsParam = new URLSearchParams(location.search).get("ws");
-const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
-const wsUrl = wsParam
-  ? `${wsParam.replace(/\/$/, "")}/?token=${encodeURIComponent(token)}`
-  : `${wsProto}//${location.host}/?token=${encodeURIComponent(token)}`;
-
 const startOverlay = document.getElementById("startOverlay");
 const startBtn = document.getElementById("startBtn");
+const tokenInput = document.getElementById("tokenInput");
+const inputErr = document.getElementById("inputErr");
 let ws = null;
+
+// Kiritilgan qiymatdan (to'liq URL yoki yalang'och token) ws manzilini quramiz.
+// Qo'llab-quvvatlanadigan shakllar:
+//   https://domen.dev/mcp?token=XXXX   -> domendan host olinadi, tokendan XXXX
+//   wss://domen.dev/?token=XXXX        -> xuddi shunday
+//   XXXX (faqat token)                 -> joriy sahifa hosti ishlatiladi
+function buildWsUrl(raw) {
+  raw = raw.trim();
+  if (!raw) return null;
+
+  let host = location.host;
+  let proto = location.protocol === "https:" ? "wss:" : "ws:";
+  let token = raw;
+
+  try {
+    const u = new URL(raw);
+    host = u.host;
+    proto = u.protocol === "https:" || u.protocol === "wss:" ? "wss:" : "ws:";
+    const qToken = u.searchParams.get("token");
+    if (qToken) token = qToken;
+  } catch (e) {
+    // URL emas — demak yalang'och token kiritilgan, hostni o'zgartirmaymiz.
+  }
+
+  return `${proto}//${host}/?token=${encodeURIComponent(token)}`;
+}
 
 // Sahifa ochilganda ULANMAYDI — faqat tugma bosilganda session boshlanadi.
 startBtn.addEventListener("click", startSession);
+tokenInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") startSession();
+});
 
 function startSession() {
+  inputErr.textContent = "";
+  const wsUrl = buildWsUrl(tokenInput.value);
+  if (!wsUrl) {
+    inputErr.textContent = "Token yoki URL kiritilmadi.";
+    return;
+  }
+
   startBtn.disabled = true;
   startBtn.textContent = "Ulanmoqda...";
   setStatus("ulanmoqda...", "");
