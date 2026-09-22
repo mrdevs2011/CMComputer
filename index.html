@@ -81,9 +81,9 @@ let ws = null;
 
 // Kiritilgan qiymatdan (to'liq URL yoki yalang'och token) ws manzilini quramiz.
 // Qo'llab-quvvatlanadigan shakllar:
-//   https://domen.dev/mcp?token=XXXX   -> domendan host olinadi, tokendan XXXX
-//   wss://domen.dev/?token=XXXX        -> xuddi shunday
-//   XXXX (faqat token)                 -> joriy sahifa hosti ishlatiladi
+//   https://domen.dev/mcp?token=XXXX                       -> domendan host, tokendan XXXX
+//   https://cmcomputer.vercel.app/?ws=wss://domen.dev&token=XXXX  -> ws= ichidagi domen ishlatiladi
+//   XXXX (faqat token)                                      -> joriy sahifa hosti ishlatiladi
 function buildWsUrl(raw) {
   raw = raw.trim();
   if (!raw) return null;
@@ -94,9 +94,19 @@ function buildWsUrl(raw) {
 
   try {
     const u = new URL(raw);
-    host = u.host;
-    proto = u.protocol === "https:" || u.protocol === "wss:" ? "wss:" : "ws:";
     const qToken = u.searchParams.get("token");
+    const qWs = u.searchParams.get("ws");
+
+    if (qWs) {
+      // Eski uslub: haqiqiy backend manzili "ws=" parametri ichida.
+      const inner = new URL(/^\w+:\/\//.test(qWs) ? qWs : `wss://${qWs}`);
+      host = inner.host;
+      proto = inner.protocol === "https:" || inner.protocol === "wss:" ? "wss:" : "ws:";
+    } else {
+      host = u.host;
+      proto = u.protocol === "https:" || u.protocol === "wss:" ? "wss:" : "ws:";
+    }
+
     if (qToken) token = qToken;
   } catch (e) {
     // URL emas — demak yalang'och token kiritilgan, hostni o'zgartirmaymiz.
