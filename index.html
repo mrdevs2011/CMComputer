@@ -14,34 +14,42 @@
   }
   #status.ok { color: #3fb950; }
   #status.err { color: #f85149; }
-  #startOverlay {
+  .overlay {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     background: #0d0e14; z-index: 20;
   }
-  #startBox { display: flex; flex-direction: column; gap: 10px; width: min(90vw, 420px); }
-  #tokenInput {
+  .box { display: flex; flex-direction: column; gap: 10px; width: min(90vw, 340px); }
+  .box input {
     font: 14px monospace; color: #ddd; background: #1b1d27; border: 1px solid #333;
     border-radius: 6px; padding: 10px 12px; outline: none;
   }
-  #tokenInput:focus { border-color: #3fb950; }
-  #startBtn {
+  .box input:focus { border-color: #3fb950; }
+  .box button {
     font: 16px monospace; color: #0d0e14; background: #3fb950; border: none;
     padding: 14px 28px; border-radius: 6px; cursor: pointer;
   }
-  #startBtn:disabled { opacity: 0.5; cursor: default; }
-  #startBtn:hover:not(:disabled) { background: #56d364; }
-  #inputErr { font: 12px monospace; color: #f85149; min-height: 14px; }
+  .box button:disabled { opacity: 0.5; cursor: default; }
+  .box button:hover:not(:disabled) { background: #56d364; }
+  .err { font: 12px monospace; color: #f85149; min-height: 14px; }
 </style>
 </head>
 <body>
 <div id="status"></div>
-<div id="startOverlay">
-  <div id="startBox">
-    <input id="tokenInput" type="text" placeholder="Enter your access token yoki to'liq URL" autocomplete="off" />
-    <div id="inputErr"></div>
+
+<div id="loginOverlay" class="overlay">
+  <div class="box">
+    <input id="passwordInput" type="password" placeholder="Parol" autocomplete="current-password" />
+    <div id="loginErr" class="err"></div>
+    <button id="loginBtn">Kirish</button>
+  </div>
+</div>
+
+<div id="startOverlay" class="overlay" style="display:none">
+  <div class="box">
     <button id="startBtn">Start session</button>
   </div>
 </div>
+
 <div id="term"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
@@ -73,71 +81,81 @@ try {
 fitAddon.fit();
 window.addEventListener("resize", () => fitAddon.fit());
 
+const loginOverlay = document.getElementById("loginOverlay");
+const passwordInput = document.getElementById("passwordInput");
+const loginBtn = document.getElementById("loginBtn");
+const loginErr = document.getElementById("loginErr");
+
 const startOverlay = document.getElementById("startOverlay");
 const startBtn = document.getElementById("startBtn");
-const tokenInput = document.getElementById("tokenInput");
-const inputErr = document.getElementById("inputErr");
+
 let ws = null;
+// Parol to'g'ri kelgach, backend host/token shu yerda (faqat xotirada) saqlanadi —
+// hech qanday localStorage yoki sahifa manbasida yozilmaydi.
+let backendHost = null;
+let backendToken = null;
 
-// Kiritilgan qiymatdan (to'liq URL yoki yalang'och token) ws manzilini quramiz.
-// Qo'llab-quvvatlanadigan shakllar:
-//   https://domen.dev/mcp?token=XXXX                       -> domendan host, tokendan XXXX
-//   https://cmcomputer.vercel.app/?ws=wss://domen.dev&token=XXXX  -> ws= ichidagi domen ishlatiladi
-//   XXXX (faqat token)                                      -> joriy sahifa hosti ishlatiladi
-function buildWsUrl(raw) {
-  raw = raw.trim();
-  if (!raw) return null;
-
-  let host = location.host;
-  let proto = location.protocol === "https:" ? "wss:" : "ws:";
-  let token = raw;
-
-  try {
-    const u = new URL(raw);
-    const qToken = u.searchParams.get("token");
-    const qWs = u.searchParams.get("ws");
-
-    if (qWs) {
-      // Eski uslub: haqiqiy backend manzili "ws=" parametri ichida.
-      const inner = new URL(/^\w+:\/\//.test(qWs) ? qWs : `wss://${qWs}`);
-      host = inner.host;
-      proto = inner.protocol === "https:" || inner.protocol === "wss:" ? "wss:" : "ws:";
-    } else {
-      host = u.host;
-      proto = u.protocol === "https:" || u.protocol === "wss:" ? "wss:" : "ws:";
-    }
-
-    if (qToken) token = qToken;
-  } catch (e) {
-    // URL emas — demak yalang'och token kiritilgan, hostni o'zgartirmaymiz.
-  }
-
-  return `${proto}//${host}/?token=${encodeURIComponent(token)}`;
-}
-
-// Sahifa ochilganda ULANMAYDI — faqat tugma bosilganda session boshlanadi.
-startBtn.addEventListener("click", startSession);
-tokenInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") startSession();
-});
-
-function startSession() {
-  inputErr.textContent = "";
-  const wsUrl = buildWsUrl(tokenInput.value);
-  if (!wsUrl) {
-    inputErr.textContent = "Token yoki URL kiritilmadi.";
+// ---- 1-qadam: parol bilan kirish (/api/login orqali server tekshiradi) ----
+async function login() {
+  loginErr.textContent = "";
+  const password = passwordInput.value;
+  if (!password) {
+    loginErr.textContent = "Parol kiriting.";
     return;
   }
+
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Tekshirilmoqda...";
+
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      loginErr.textContent = data.error || "Parol xato.";
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Kirish";
+      return;
+    }
+
+    backendHost = data.host;
+    backendToken = data.token;
+    passwordInput.value = "";
+    loginOverlay.style.display = "none";
+    startOverlay.style.display = "flex";
+  } catch (e) {
+    loginErr.textContent = "Server bilan bog'lanib bo'lmadi.";
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Kirish";
+  }
+}
+
+loginBtn.addEventListener("click", login);
+passwordInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") login();
+});
+
+// ---- 2-qadam: WebSocket session (host/token /api/login'dan kelgan) ----
+// Sahifa ochilganda ULANMAYDI — parol tasdiqlangach ham faqat tugma bosilganda ulanadi.
+startBtn.addEventListener("click", startSession);
+
+function startSession() {
+  if (!backendHost || !backendToken) return;
 
   startBtn.disabled = true;
   startBtn.textContent = "Ulanmoqda...";
   setStatus("ulanmoqda...", "");
 
+  const wsUrl = `wss://${backendHost}/?token=${encodeURIComponent(backendToken)}`;
   ws = new WebSocket(wsUrl);
   ws.binaryType = "arraybuffer";
 
   ws.onopen = () => {
-    startOverlay.remove();
+    startOverlay.style.display = "none";
     setStatus("ulandi", "ok");
     fitAddon.fit();
     sendResize();
@@ -158,10 +176,10 @@ function startSession() {
 }
 
 function resetToStart() {
-  // Ulanish uzilsa, qayta "Start session" tugmasini ko'rsatamiz.
+  // Ulanish uzilsa, qayta "Start session" tugmasini ko'rsatamiz (parolni qayta so'ramaydi).
   startBtn.disabled = false;
   startBtn.textContent = "Start session";
-  if (!document.body.contains(startOverlay)) document.body.appendChild(startOverlay);
+  startOverlay.style.display = "flex";
 }
 
 // terminal -> server: har bosilgan tugma darhol jo'natiladi, kechikishsiz
