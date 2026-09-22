@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CMC Terminal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #0d0e14; }
+  #term { position: absolute; inset: 0; padding: 8px; box-sizing: border-box; }
+  #status {
+    position: fixed; top: 6px; right: 12px; font: 12px monospace; color: #666;
+    z-index: 10;
+  }
+  #status.ok { color: #3fb950; }
+  #status.err { color: #f85149; }
+</style>
+</head>
+<body>
+<div id="status">ulanmoqda...</div>
+<div id="term"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-webgl@0.18.0/lib/addon-webgl.min.js"></script>
+<script>
+const statusEl = document.getElementById("status");
+const setStatus = (text, cls) => { statusEl.textContent = text; statusEl.className = cls || ""; };
+
+const term = new Terminal({
+  cursorBlink: true,
+  fontFamily: "Menlo, Consolas, monospace",
+  fontSize: 14,
+  theme: { background: "#0d0e14" },
+  scrollback: 5000,
+});
+const fitAddon = new FitAddon.FitAddon();
+term.loadAddon(fitAddon);
+term.open(document.getElementById("term"));
+
+// WebGL renderer — GPU orqali chizadi, katta oqim (masalan `cat bigfile` yoki build log)
+// paytida ham UI qotib qolmaydi. Bu web terminalning tezligi uchun eng muhim qism.
+try {
+  term.loadAddon(new WebglAddon.WebglAddon());
+} catch (e) {
+  console.warn("WebGL yoqilmadi, oddiy renderer ishlatiladi", e);
+}
+
+fitAddon.fit();
+window.addEventListener("resize", () => fitAddon.fit());
+
+const token = new URLSearchParams(location.search).get("token") || "";
+// ws param: masalan wss://domenim.uz — sayt Vercel'da, backend esa boshqa joyda (ngrok tunnel) ishlaydi.
+// Berilmasa, sahifa qayerda ochilgan bo'lsa, o'sha joyga ulanishga urinadi (local test uchun).
+const wsParam = new URLSearchParams(location.search).get("ws");
+const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
+const wsUrl = wsParam
+  ? `${wsParam.replace(/\/$/, "")}/?token=${encodeURIComponent(token)}`
+  : `${wsProto}//${location.host}/?token=${encodeURIComponent(token)}`;
+const ws = new WebSocket(wsUrl);
+ws.binaryType = "arraybuffer";
+
+ws.onopen = () => {
+  setStatus("ulandi", "ok");
+  sendResize();
+};
+ws.onclose = (e) => setStatus(e.code === 4001 ? "token xato" : "uzildi", "err");
+ws.onerror = () => setStatus("xato", "err");
+
+// server -> terminal: darhol yoz, kutmasdan (backpressure'ni brauzer o'zi boshqaradi)
+ws.onmessage = (ev) => {
+  const data = typeof ev.data === "string" ? ev.data : new Uint8Array(ev.data);
+  term.write(data);
+};
+
+// terminal -> server: har bosilgan tugma darhol jo'natiladi, kechikishsiz
+term.onData((data) => {
+  if (ws.readyState === WebSocket.OPEN) ws.send(data);
+});
+
+function sendResize() {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(`\x01${term.cols},${term.rows}`);
+  }
+}
+term.onResize(sendResize);
+</script>
+</body>
+</html>
