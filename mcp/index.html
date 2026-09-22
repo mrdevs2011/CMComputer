@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMC — Claude MCP URL</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: #0d0e14;
+      font-family: "JetBrains Mono", Menlo, Consolas, monospace;
+      color: #e6edf3;
+    }
+    .wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    .card {
+      width: min(92vw, 480px);
+      background: #161b22;
+      border: 1px solid rgba(63, 185, 80, 0.2);
+      border-radius: 12px;
+      padding: 28px 24px;
+      box-shadow: 0 0 40px rgba(63, 185, 80, 0.06);
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: #7d8590;
+      margin-bottom: 6px;
+    }
+    .title span { color: #3fb950; }
+    h1 {
+      margin: 0 0 20px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: #7d8590;
+      margin: 12px 0 6px;
+    }
+    label:first-of-type { margin-top: 0; }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      font: 14px monospace;
+      color: #e6edf3;
+      background: #0d0e14;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 14px;
+      outline: none;
+    }
+    input:focus { border-color: #3fb950; }
+    button {
+      width: 100%;
+      margin-top: 14px;
+      font: 14px monospace;
+      font-weight: 600;
+      color: #0d0e14;
+      background: #3fb950;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) { background: #56d364; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    button.secondary {
+      background: transparent;
+      color: #3fb950;
+      border: 1px solid rgba(63, 185, 80, 0.35);
+      margin-top: 10px;
+    }
+    button.secondary:hover:not(:disabled) {
+      background: rgba(63, 185, 80, 0.1);
+    }
+    .err {
+      min-height: 18px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #f85149;
+    }
+    .url-box {
+      margin-top: 8px;
+      padding: 14px;
+      background: #0d0e14;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      word-break: break-all;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #3fb950;
+      user-select: all;
+    }
+    .hint {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #7d8590;
+      line-height: 1.5;
+    }
+    .ok { color: #3fb950; font-size: 12px; margin-top: 8px; min-height: 18px; }
+    a.back {
+      display: inline-block;
+      margin-top: 18px;
+      font-size: 12px;
+      color: #7d8590;
+      text-decoration: none;
+    }
+    a.back:hover { color: #3fb950; }
+    #result { display: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="title">[ <span>CMC</span> ]</div>
+      <h1>Claude MCP URL</h1>
+
+      <div id="gate">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="username" />
+        <label for="pass">Parol</label>
+        <input id="pass" type="password" placeholder="Parol" autocomplete="current-password" />
+        <div class="err" id="err"></div>
+        <button id="btn" type="button">Ko‘rsatish</button>
+        <p class="hint">Terminal loginidagi email va parol. To‘g‘ri bo‘lsa Claude ga beriladigan MCP manzil chiqadi.</p>
+      </div>
+
+      <div id="result">
+        <label>Claude custom connector URL</label>
+        <div class="url-box" id="url"></div>
+        <div class="ok" id="copied"></div>
+        <button class="secondary" id="copy" type="button">Nusxa olish</button>
+        <p class="hint">
+          Claude → Settings → Connectors → Add custom connector.<br />
+          Shu URL ni to‘liq joylashtiring.
+        </p>
+      </div>
+
+      <a class="back" href="/">← Terminal</a>
+    </div>
+  </div>
+
+  <script>
+    const emailEl = document.getElementById("email");
+    const passEl = document.getElementById("pass");
+    const errEl = document.getElementById("err");
+    const btn = document.getElementById("btn");
+    const gate = document.getElementById("gate");
+    const result = document.getElementById("result");
+    const urlEl = document.getElementById("url");
+    const copyBtn = document.getElementById("copy");
+    const copied = document.getElementById("copied");
+
+    async function showUrl() {
+      errEl.textContent = "";
+      copied.textContent = "";
+      const email = emailEl.value.trim();
+      const password = passEl.value;
+      if (!email || !password) {
+        errEl.textContent = "Email va parol kiriting";
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const res = await fetch("/api/mcp-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          errEl.textContent = data.error || ("Xato " + res.status);
+          return;
+        }
+        urlEl.textContent = data.url;
+        gate.style.display = "none";
+        result.style.display = "block";
+      } catch (e) {
+        errEl.textContent = e.message || "Tarmoq xatosi";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    btn.addEventListener("click", showUrl);
+    emailEl.addEventListener("keydown", (e) => { if (e.key === "Enter") passEl.focus(); });
+    passEl.addEventListener("keydown", (e) => { if (e.key === "Enter") showUrl(); });
+
+    copyBtn.addEventListener("click", async () => {
+      const text = urlEl.textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        copied.textContent = "Nusxa olindi";
+      } catch {
+        const r = document.createRange();
+        r.selectNodeContents(urlEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+        copied.textContent = "URL ni Ctrl+C bilan nusxalang";
+      }
+    });
+  </script>
+</body>
+</html>

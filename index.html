@@ -38,6 +38,7 @@
 
 <div id="loginOverlay" class="overlay">
   <div class="box">
+    <input id="emailInput" type="email" placeholder="Email" autocomplete="username" />
     <input id="passwordInput" type="password" placeholder="Parol" autocomplete="current-password" />
     <div id="loginErr" class="err"></div>
     <button id="loginBtn">Kirish</button>
@@ -82,6 +83,7 @@ fitAddon.fit();
 window.addEventListener("resize", () => fitAddon.fit());
 
 const loginOverlay = document.getElementById("loginOverlay");
+const emailInput = document.getElementById("emailInput");
 const passwordInput = document.getElementById("passwordInput");
 const loginBtn = document.getElementById("loginBtn");
 const loginErr = document.getElementById("loginErr");
@@ -98,9 +100,10 @@ let backendToken = null;
 // ---- 1-qadam: parol bilan kirish (/api/login orqali server tekshiradi) ----
 async function login() {
   loginErr.textContent = "";
+  const email = emailInput.value.trim();
   const password = passwordInput.value;
-  if (!password) {
-    loginErr.textContent = "Parol kiriting.";
+  if (!email || !password) {
+    loginErr.textContent = "Email va parol kiriting.";
     return;
   }
 
@@ -111,7 +114,7 @@ async function login() {
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
 
@@ -135,6 +138,9 @@ async function login() {
 }
 
 loginBtn.addEventListener("click", login);
+emailInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") passwordInput.focus();
+});
 passwordInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") login();
 });

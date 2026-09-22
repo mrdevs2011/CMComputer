@@ -1,9 +1,9 @@
-// Vercel serverless — email + parol tekshiradi.
+// Email + parol to'g'ri bo'lsa Claude MCP URL ni qaytaradi.
 // Environment Variables:
-//   LOGIN_EMAIL     — email ning SHA-256 hex hashi (emailning o'zi emas!)
-//   PASSWORD_HASH   — parolning SHA-256 hex hashi
-//   CMC_WS_HOST     — backend domeni
-//   CMC_TOKEN       — brauzer terminali tokeni
+//   LOGIN_EMAIL     — email SHA-256 hex
+//   PASSWORD_HASH   — parol SHA-256 hex
+//   CMC_WS_HOST     — ngrok host
+//   ACCESS_TOKEN    — MCP token (yoki MCP_TOKEN)
 
 const crypto = require("crypto");
 
@@ -22,6 +22,15 @@ function safeEqualHex(gotHex, expectedHex) {
 }
 
 module.exports = async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   if (req.method !== "POST") {
     res.status(405).json({ error: "Faqat POST" });
     return;
@@ -36,11 +45,11 @@ module.exports = async (req, res) => {
   const expectedEmailHash = process.env.LOGIN_EMAIL;
   const expectedPassHash = process.env.PASSWORD_HASH;
   const host = process.env.CMC_WS_HOST;
-  const token = process.env.CMC_TOKEN;
+  const accessToken = process.env.ACCESS_TOKEN || process.env.MCP_TOKEN;
 
-  if (!expectedEmailHash || !expectedPassHash || !host || !token) {
+  if (!expectedEmailHash || !expectedPassHash || !host || !accessToken) {
     res.status(500).json({
-      error: "Server sozlanmagan — LOGIN_EMAIL, PASSWORD_HASH, CMC_WS_HOST, CMC_TOKEN kerak",
+      error: "Server sozlanmagan — LOGIN_EMAIL, PASSWORD_HASH, CMC_WS_HOST, ACCESS_TOKEN kerak",
     });
     return;
   }
@@ -57,5 +66,8 @@ module.exports = async (req, res) => {
     return;
   }
 
-  res.status(200).json({ host, token });
+  const cleanHost = String(host).replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const mcpUrl = `https://${cleanHost}/mcp?token=${accessToken}`;
+
+  res.status(200).json({ url: mcpUrl, host: cleanHost });
 };
