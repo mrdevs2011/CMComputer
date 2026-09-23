@@ -222,7 +222,7 @@ function startSession() {
 
   startBtn.disabled = true;
   startBtn.textContent = "Ulanmoqda...";
-  setStatus("ulanmoqda...", "");
+  setStatus("", "");
 
   const wsUrl = `wss://${backendHost}/?token=${encodeURIComponent(backendToken)}`;
   log(`ws: ulanmoqda — ${wsUrl.replace(backendToken, backendToken.slice(0, 8) + "...")}`);
