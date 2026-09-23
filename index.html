@@ -276,6 +276,34 @@ function sendResize() {
 }
 term.onResize(sendResize);
 
+// ---- Brauzer shortcutlarini o'chirish — Ctrl/Cmd/Alt/F-tugmalar terminalga tegishli,
+// brauzerga (yangi tab, refresh, save va h.k.) berilmaydi. Eslatma: Ctrl+W/Ctrl+T/Ctrl+N
+// kabi ba'zi tugmalarni xavfsizlik sababli brauzerning o'zi bloklashga ruxsat bermaydi —
+// bu JS orqali chetlab o'tib bo'lmaydigan cheklov.
+window.addEventListener(
+  "keydown",
+  (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || /^F\d{1,2}$/.test(e.key)) {
+      e.preventDefault();
+    }
+  },
+  { capture: true }
+);
+
+// O'ng tugma menyusi ham o'chirilgan
+window.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// Backspace sahifani orqaga qaytarmasin
+window.addEventListener(
+  "keydown",
+  (e) => {
+    if (e.key === "Backspace" && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
+      e.preventDefault();
+    }
+  },
+  { capture: true }
+);
+
 // ---- O'zimizning shell scroller — brauzer scrollbari emas, terminal uchun maxsus ----
 const shellScroller = document.getElementById("shellScroller");
 const shellScrollerThumb = document.getElementById("shellScrollerThumb");
