@@ -31,20 +31,21 @@
   .box button:disabled { opacity: 0.5; cursor: default; }
   .box button:hover:not(:disabled) { background: #56d364; }
   .err { font: 12px monospace; color: #f85149; min-height: 14px; }
-  #debugLog {
-    position: fixed; left: 0; right: 0; bottom: 0; max-height: 40vh;
-    overflow-y: auto; background: rgba(13,14,20,0.95); border-top: 1px solid #333;
-    font: 11px/1.4 monospace; color: #9da; padding: 6px 10px; z-index: 30;
-    white-space: pre-wrap; word-break: break-all;
+  #shellScroller {
+    position: absolute; top: 8px; bottom: 8px; right: 2px; width: 6px;
+    z-index: 5; display: none;
   }
-  #debugLog .t { color: #666; }
-  #debugLog .lvl-err { color: #f85149; }
-  #debugLog .lvl-ok { color: #3fb950; }
+  #shellScrollerThumb {
+    position: absolute; right: 0; width: 6px; background: #333; border-radius: 3px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  #shellScrollerThumb:hover, #shellScrollerThumb.dragging { background: #555; }
+  * { scrollbar-width: none; }
+  *::-webkit-scrollbar { display: none; }
 </style>
 </head>
 <body>
 <div id="status"></div>
-<div id="debugLog"></div>
 
 <div id="loginOverlay" class="overlay">
   <div class="box">
@@ -61,7 +62,9 @@
   </div>
 </div>
 
-<div id="term"></div>
+<div id="term">
+  <div id="shellScroller"><div id="shellScrollerThumb"></div></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
@@ -70,16 +73,11 @@
 const statusEl = document.getElementById("status");
 const setStatus = (text, cls) => { statusEl.textContent = text; statusEl.className = cls || ""; };
 
-// ---- Ekrandagi debug log — devtools ochmasdan ham nima bo'layotganini ko'rish uchun ----
-const debugLogEl = document.getElementById("debugLog");
+// ---- Debug log — endi faqat browser console'ga chiqadi ----
 function log(msg, level) {
-  const line = document.createElement("div");
   const time = new Date().toLocaleTimeString("uz-UZ", { hour12: false });
-  line.innerHTML = `<span class="t">[${time}]</span> <span class="${level ? "lvl-" + level : ""}">${msg}</span>`;
-  debugLogEl.appendChild(line);
-  debugLogEl.scrollTop = debugLogEl.scrollHeight;
-  // 200 qatordan oshsa eskilarini olib tashlaymiz
-  while (debugLogEl.children.length > 200) debugLogEl.removeChild(debugLogEl.firstChild);
+  const fn = level === "err" ? console.error : console.log;
+  fn(`[${time}] ${msg}`);
 }
 window.addEventListener("error", (e) => log(`JS xato: ${e.message}`, "err"));
 
@@ -235,8 +233,8 @@ function startSession() {
   ws.onopen = () => {
     log("ws: onopen — ulanish ochildi", "ok");
     startOverlay.style.display = "none";
-    setStatus("ulandi", "ok");
     fitAddon.fit();
+    updateShellScroller();
     sendResize();
   };
 
@@ -277,6 +275,76 @@ function sendResize() {
   }
 }
 term.onResize(sendResize);
+
+// ---- O'zimizning shell scroller — brauzer scrollbari emas, terminal uchun maxsus ----
+const shellScroller = document.getElementById("shellScroller");
+const shellScrollerThumb = document.getElementById("shellScrollerThumb");
+
+function updateShellScroller() {
+  const buf = term.buffer.active;
+  const total = buf.length;
+  const rows = term.rows;
+  if (total <= rows) {
+    shellScroller.style.display = "none";
+    return;
+  }
+  shellScroller.style.display = "block";
+  const trackH = shellScroller.clientHeight;
+  const thumbH = Math.max(20, (rows / total) * trackH);
+  const maxScroll = total - rows;
+  const ratio = maxScroll > 0 ? buf.viewportY / maxScroll : 0;
+  shellScrollerThumb.style.height = `${thumbH}px`;
+  shellScrollerThumb.style.top = `${ratio * (trackH - thumbH)}px`;
+}
+
+term.onScroll(updateShellScroller);
+if (term.onWriteParsed) term.onWriteParsed(updateShellScroller);
+window.addEventListener("resize", () => setTimeout(updateShellScroller, 0));
+
+let draggingScroller = false;
+let dragStartY = 0;
+let dragStartTop = 0;
+
+shellScrollerThumb.addEventListener("mousedown", (e) => {
+  draggingScroller = true;
+  dragStartY = e.clientY;
+  dragStartTop = parseFloat(shellScrollerThumb.style.top) || 0;
+  shellScrollerThumb.classList.add("dragging");
+  e.preventDefault();
+});
+
+window.addEventListener("mousemove", (e) => {
+  if (!draggingScroller) return;
+  const trackH = shellScroller.clientHeight;
+  const thumbH = shellScrollerThumb.clientHeight;
+  let newTop = dragStartTop + (e.clientY - dragStartY);
+  newTop = Math.max(0, Math.min(trackH - thumbH, newTop));
+  shellScrollerThumb.style.top = `${newTop}px`;
+
+  const buf = term.buffer.active;
+  const maxScroll = buf.length - term.rows;
+  const ratio = trackH - thumbH > 0 ? newTop / (trackH - thumbH) : 0;
+  term.scrollToLine(Math.round(ratio * maxScroll));
+});
+
+window.addEventListener("mouseup", () => {
+  draggingScroller = false;
+  shellScrollerThumb.classList.remove("dragging");
+});
+
+shellScroller.addEventListener("mousedown", (e) => {
+  if (e.target === shellScrollerThumb) return;
+  const rect = shellScroller.getBoundingClientRect();
+  const clickY = e.clientY - rect.top;
+  const trackH = shellScroller.clientHeight;
+  const thumbH = shellScrollerThumb.clientHeight;
+  const ratio = Math.max(0, Math.min(1, (clickY - thumbH / 2) / (trackH - thumbH)));
+  const buf = term.buffer.active;
+  const maxScroll = buf.length - term.rows;
+  term.scrollToLine(Math.round(ratio * maxScroll));
+});
+
+updateShellScroller();
 </script>
 </body>
 </html>
