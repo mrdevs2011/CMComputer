@@ -191,7 +191,11 @@ async function checkBackendHealth() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(`https://${backendHost}/health`, { signal: controller.signal });
+    const res = await fetch(`https://${backendHost}/health`, {
+      signal: controller.signal,
+      credentials: "include",
+      headers: { "ngrok-skip-browser-warning": "true" },
+    });
     clearTimeout(timeout);
     log(`health: javob http=${res.status}`, res.ok ? "ok" : "err");
 
