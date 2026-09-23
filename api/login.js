@@ -5,7 +5,7 @@
 //   CMC_WS_HOST     — backend domeni
 //   CMC_TOKEN       — brauzer terminali tokeni
 
-const crypto = require("crypto");
+import crypto from "crypto";
 
 function sha256hex(text) {
   return crypto.createHash("sha256").update(String(text), "utf8").digest("hex");
@@ -21,7 +21,7 @@ function safeEqualHex(gotHex, expectedHex) {
   }
 }
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Faqat POST" });
     return;

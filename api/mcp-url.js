@@ -5,7 +5,7 @@
 //   CMC_WS_HOST     — ngrok host
 //   ACCESS_TOKEN    — MCP token (yoki MCP_TOKEN)
 
-const crypto = require("crypto");
+import crypto from "crypto";
 
 function sha256hex(text) {
   return crypto.createHash("sha256").update(String(text), "utf8").digest("hex");
@@ -21,7 +21,7 @@ function safeEqualHex(gotHex, expectedHex) {
   }
 }
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
