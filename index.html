@@ -31,10 +31,20 @@
   .box button:disabled { opacity: 0.5; cursor: default; }
   .box button:hover:not(:disabled) { background: #56d364; }
   .err { font: 12px monospace; color: #f85149; min-height: 14px; }
+  #debugLog {
+    position: fixed; left: 0; right: 0; bottom: 0; max-height: 40vh;
+    overflow-y: auto; background: rgba(13,14,20,0.95); border-top: 1px solid #333;
+    font: 11px/1.4 monospace; color: #9da; padding: 6px 10px; z-index: 30;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  #debugLog .t { color: #666; }
+  #debugLog .lvl-err { color: #f85149; }
+  #debugLog .lvl-ok { color: #3fb950; }
 </style>
 </head>
 <body>
 <div id="status"></div>
+<div id="debugLog"></div>
 
 <div id="loginOverlay" class="overlay">
   <div class="box">
@@ -47,7 +57,7 @@
 
 <div id="startOverlay" class="overlay" style="display:none">
   <div class="box">
-    <button id="startBtn">Start session</button>
+    <button id="startBtn" disabled>Tekshirilmoqda...</button>
   </div>
 </div>
 
@@ -59,6 +69,19 @@
 <script>
 const statusEl = document.getElementById("status");
 const setStatus = (text, cls) => { statusEl.textContent = text; statusEl.className = cls || ""; };
+
+// ---- Ekrandagi debug log — devtools ochmasdan ham nima bo'layotganini ko'rish uchun ----
+const debugLogEl = document.getElementById("debugLog");
+function log(msg, level) {
+  const line = document.createElement("div");
+  const time = new Date().toLocaleTimeString("uz-UZ", { hour12: false });
+  line.innerHTML = `<span class="t">[${time}]</span> <span class="${level ? "lvl-" + level : ""}">${msg}</span>`;
+  debugLogEl.appendChild(line);
+  debugLogEl.scrollTop = debugLogEl.scrollHeight;
+  // 200 qatordan oshsa eskilarini olib tashlaymiz
+  while (debugLogEl.children.length > 200) debugLogEl.removeChild(debugLogEl.firstChild);
+}
+window.addEventListener("error", (e) => log(`JS xato: ${e.message}`, "err"));
 
 const term = new Terminal({
   cursorBlink: true,
@@ -109,6 +132,7 @@ async function login() {
 
   loginBtn.disabled = true;
   loginBtn.textContent = "Tekshirilmoqda...";
+  log(`login: /api/login ga so'rov ketyapti (email=${email})`);
 
   try {
     const res = await fetch("/api/login", {
@@ -117,6 +141,7 @@ async function login() {
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
+    log(`login: javob keldi, http=${res.status}`, res.ok ? "ok" : "err");
 
     if (!res.ok) {
       loginErr.textContent = data.error || "Parol xato.";
@@ -127,10 +152,13 @@ async function login() {
 
     backendHost = data.host;
     backendToken = data.token;
+    log(`login: host=${backendHost} token=${backendToken.slice(0, 8)}...`, "ok");
     passwordInput.value = "";
     loginOverlay.style.display = "none";
     startOverlay.style.display = "flex";
+    checkBackendHealth();
   } catch (e) {
+    log(`login: fetch xato — ${e.message}`, "err");
     loginErr.textContent = "Server bilan bog'lanib bo'lmadi.";
     loginBtn.disabled = false;
     loginBtn.textContent = "Kirish";
@@ -149,6 +177,44 @@ passwordInput.addEventListener("keydown", (e) => {
 // Sahifa ochilganda ULANMAYDI — parol tasdiqlangach ham faqat tugma bosilganda ulanadi.
 startBtn.addEventListener("click", startSession);
 
+// Kompyuterda backend (`cmc --start`) ishlab turgan-turmaganini /health orqali tekshiramiz.
+// Ishlamasa "Start session" o'rniga shuni bildiruvchi matn ko'rsatiladi va tugma bosilmaydi.
+let healthPollTimer = null;
+
+async function checkBackendHealth() {
+  if (!backendHost) return;
+
+  startBtn.disabled = true;
+  startBtn.textContent = "Tekshirilmoqda...";
+  log(`health: https://${backendHost}/health tekshirilmoqda`);
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`https://${backendHost}/health`, { signal: controller.signal });
+    clearTimeout(timeout);
+    log(`health: javob http=${res.status}`, res.ok ? "ok" : "err");
+
+    if (res.ok) {
+      if (healthPollTimer) {
+        clearInterval(healthPollTimer);
+        healthPollTimer = null;
+      }
+      startBtn.disabled = false;
+      startBtn.textContent = "Start session";
+      return;
+    }
+    throw new Error("not ok");
+  } catch (e) {
+    log(`health: xato — ${e.message}`, "err");
+    startBtn.disabled = true;
+    startBtn.textContent = "Kompyuter ulanmagan";
+    if (!healthPollTimer) {
+      healthPollTimer = setInterval(checkBackendHealth, 5000);
+    }
+  }
+}
+
 function startSession() {
   if (!backendHost || !backendToken) return;
 
@@ -157,10 +223,13 @@ function startSession() {
   setStatus("ulanmoqda...", "");
 
   const wsUrl = `wss://${backendHost}/?token=${encodeURIComponent(backendToken)}`;
+  log(`ws: ulanmoqda — ${wsUrl.replace(backendToken, backendToken.slice(0, 8) + "...")}`);
+  const openedAt = Date.now();
   ws = new WebSocket(wsUrl);
   ws.binaryType = "arraybuffer";
 
   ws.onopen = () => {
+    log("ws: onopen — ulanish ochildi", "ok");
     startOverlay.style.display = "none";
     setStatus("ulandi", "ok");
     fitAddon.fit();
@@ -168,11 +237,16 @@ function startSession() {
   };
 
   ws.onclose = (e) => {
+    const aliveMs = Date.now() - openedAt;
+    log(`ws: onclose — code=${e.code} reason="${e.reason || "(yo'q)"}" wasClean=${e.wasClean} (${aliveMs}ms ochiq turdi)`, "err");
     setStatus(e.code === 4001 ? "token xato" : "uzildi", "err");
     resetToStart();
   };
 
-  ws.onerror = () => setStatus("xato", "err");
+  ws.onerror = (e) => {
+    log("ws: onerror — brauzer batafsil sabab bermaydi, onclose'dagi code'ga qara", "err");
+    setStatus("xato", "err");
+  };
 
   // server -> terminal: darhol yoz, kutmasdan (backpressure'ni brauzer o'zi boshqaradi)
   ws.onmessage = (ev) => {
@@ -182,10 +256,10 @@ function startSession() {
 }
 
 function resetToStart() {
-  // Ulanish uzilsa, qayta "Start session" tugmasini ko'rsatamiz (parolni qayta so'ramaydi).
-  startBtn.disabled = false;
-  startBtn.textContent = "Start session";
+  // Ulanish uzilsa, parolni qayta so'ramaymiz — lekin kompyuter hali ham
+  // ulanganmi, shuni qayta tekshiramiz (bekorga "Start session" ko'rsatmaslik uchun).
   startOverlay.style.display = "flex";
+  checkBackendHealth();
 }
 
 // terminal -> server: har bosilgan tugma darhol jo'natiladi, kechikishsiz
