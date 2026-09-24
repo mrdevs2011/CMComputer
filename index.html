@@ -1,420 +1,224 @@
 <!doctype html>
 <html lang="uz">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CMC Terminal</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css" />
-<style>
-  html, body { margin: 0; padding: 0; height: 100%; background: #0d0e14; }
-  #term { position: absolute; inset: 0; padding: 8px; box-sizing: border-box; }
-  #status {
-    position: fixed; top: 6px; right: 12px; font: 12px monospace; color: #666;
-    z-index: 10;
-  }
-  #status.ok { color: #3fb950; }
-  #status.err { color: #f85149; }
-  .overlay {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    background: #0d0e14; z-index: 20;
-  }
-  .box { display: flex; flex-direction: column; gap: 10px; width: min(90vw, 340px); }
-  .box input {
-    font: 14px monospace; color: #ddd; background: #1b1d27; border: 1px solid #333;
-    border-radius: 6px; padding: 10px 12px; outline: none;
-  }
-  .box input:focus { border-color: #3fb950; }
-  .box button {
-    font: 16px monospace; color: #0d0e14; background: #3fb950; border: none;
-    padding: 14px 28px; border-radius: 6px; cursor: pointer;
-  }
-  .box button:disabled { opacity: 0.5; cursor: default; }
-  .box button:hover:not(:disabled) { background: #56d364; }
-  .err { font: 12px monospace; color: #f85149; min-height: 14px; }
-  #shellScroller {
-    position: absolute; top: 8px; bottom: 8px; right: 2px; width: 6px;
-    z-index: 5; display: none;
-  }
-  #shellScrollerThumb {
-    position: absolute; right: 0; width: 6px; background: #333; border-radius: 3px;
-    cursor: pointer; transition: background 0.15s;
-  }
-  #shellScrollerThumb:hover, #shellScrollerThumb.dragging { background: #555; }
-  * { scrollbar-width: none; }
-  *::-webkit-scrollbar { display: none; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMC — Claude MCP</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background: #0d0e14;
+      font-family: "JetBrains Mono", Menlo, Consolas, monospace;
+      color: #e6edf3;
+    }
+    .wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    .card {
+      width: min(92vw, 480px);
+      background: #161b22;
+      border: 1px solid rgba(63, 185, 80, 0.2);
+      border-radius: 12px;
+      padding: 28px 24px;
+      box-shadow: 0 0 40px rgba(63, 185, 80, 0.06);
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: #7d8590;
+      margin-bottom: 6px;
+    }
+    .title span { color: #3fb950; }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    .subtitle {
+      margin: 0 0 20px;
+      font-size: 12px;
+      color: #7d8590;
+      line-height: 1.5;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: #7d8590;
+      margin: 12px 0 6px;
+    }
+    label:first-of-type { margin-top: 0; }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      font: 14px monospace;
+      color: #e6edf3;
+      background: #0d0e14;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 12px 14px;
+      outline: none;
+    }
+    input:focus { border-color: #3fb950; }
+    button {
+      width: 100%;
+      margin-top: 14px;
+      font: 14px monospace;
+      font-weight: 600;
+      color: #0d0e14;
+      background: #3fb950;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) { background: #56d364; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    button.secondary {
+      background: transparent;
+      color: #3fb950;
+      border: 1px solid rgba(63, 185, 80, 0.35);
+      margin-top: 10px;
+    }
+    button.secondary:hover:not(:disabled) {
+      background: rgba(63, 185, 80, 0.1);
+    }
+    .err {
+      min-height: 18px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #f85149;
+    }
+    .url-box {
+      margin-top: 8px;
+      padding: 14px;
+      background: #0d0e14;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      word-break: break-all;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #3fb950;
+      user-select: all;
+    }
+    .hint {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #7d8590;
+      line-height: 1.5;
+    }
+    .ok { color: #3fb950; font-size: 12px; margin-top: 8px; min-height: 18px; }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      color: #3fb950;
+      border: 1px solid rgba(63, 185, 80, 0.35);
+      border-radius: 999px;
+      padding: 3px 10px;
+      margin-bottom: 14px;
+    }
+    #result { display: none; }
+  </style>
 </head>
 <body>
-<div id="status"></div>
+  <div class="wrap">
+    <div class="card">
+      <div class="title">[ <span>CMC</span> ]</div>
+      <h1>Claude MCP</h1>
+      <p class="subtitle">Brauzerda faqat MCP. Terminal / shell yo‘q — kompyuter faqat MCP orqali.</p>
+      <div class="badge">MCP ONLY · NO TERMINAL</div>
 
-<div id="loginOverlay" class="overlay">
-  <div class="box">
-    <input id="emailInput" type="email" placeholder="Email" autocomplete="username" />
-    <input id="passwordInput" type="password" placeholder="Parol" autocomplete="current-password" />
-    <div id="loginErr" class="err"></div>
-    <button id="loginBtn">Kirish</button>
+      <div id="gate">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="username" />
+        <label for="pass">Parol</label>
+        <input id="pass" type="password" placeholder="Parol" autocomplete="current-password" />
+        <div class="err" id="err"></div>
+        <button id="btn" type="button">MCP URL olish</button>
+        <p class="hint">Email va parol to‘g‘ri bo‘lsa Claude ga beriladigan MCP manzil chiqadi. Shell yoki terminal ochilmaydi.</p>
+      </div>
+
+      <div id="result">
+        <label>Claude custom connector URL</label>
+        <div class="url-box" id="url"></div>
+        <div class="ok" id="copied"></div>
+        <button class="secondary" id="copy" type="button">Nusxa olish</button>
+        <p class="hint">
+          Claude → Settings → Connectors → Add custom connector.<br />
+          Shu URL ni to‘liq joylashtiring.<br />
+          Kompyuter boshqaruvi faqat MCP <code>run_command</code> orqali.
+        </p>
+      </div>
+    </div>
   </div>
-</div>
 
-<div id="startOverlay" class="overlay" style="display:none">
-  <div class="box">
-    <button id="startBtn" disabled>Tekshirilmoqda...</button>
-  </div>
-</div>
+  <script>
+    const emailEl = document.getElementById("email");
+    const passEl = document.getElementById("pass");
+    const errEl = document.getElementById("err");
+    const btn = document.getElementById("btn");
+    const gate = document.getElementById("gate");
+    const result = document.getElementById("result");
+    const urlEl = document.getElementById("url");
+    const copyBtn = document.getElementById("copy");
+    const copied = document.getElementById("copied");
 
-<div id="term">
-  <div id="shellScroller"><div id="shellScrollerThumb"></div></div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-webgl@0.18.0/lib/addon-webgl.min.js"></script>
-<script>
-const statusEl = document.getElementById("status");
-const setStatus = (text, cls) => { statusEl.textContent = text; statusEl.className = cls || ""; };
-
-// ---- Debug log — endi faqat browser console'ga chiqadi ----
-function log(msg, level) {
-  const time = new Date().toLocaleTimeString("uz-UZ", { hour12: false });
-  const fn = level === "err" ? console.error : console.log;
-  fn(`[${time}] ${msg}`);
-}
-window.addEventListener("error", (e) => log(`JS xato: ${e.message}`, "err"));
-
-const term = new Terminal({
-  cursorBlink: true,
-  fontFamily: "Menlo, Consolas, monospace",
-  fontSize: 14,
-  theme: { background: "#0d0e14" },
-  scrollback: 5000,
-});
-const fitAddon = new FitAddon.FitAddon();
-term.loadAddon(fitAddon);
-term.open(document.getElementById("term"));
-
-// WebGL renderer — GPU orqali chizadi, katta oqim (masalan `cat bigfile` yoki build log)
-// paytida ham UI qotib qolmaydi. Bu web terminalning tezligi uchun eng muhim qism.
-try {
-  term.loadAddon(new WebglAddon.WebglAddon());
-} catch (e) {
-  console.warn("WebGL yoqilmadi, oddiy renderer ishlatiladi", e);
-}
-
-fitAddon.fit();
-window.addEventListener("resize", () => fitAddon.fit());
-
-const loginOverlay = document.getElementById("loginOverlay");
-const emailInput = document.getElementById("emailInput");
-const passwordInput = document.getElementById("passwordInput");
-const loginBtn = document.getElementById("loginBtn");
-const loginErr = document.getElementById("loginErr");
-
-const startOverlay = document.getElementById("startOverlay");
-const startBtn = document.getElementById("startBtn");
-
-let ws = null;
-// Parol to'g'ri kelgach, backend host/token shu yerda (faqat xotirada) saqlanadi —
-// hech qanday localStorage yoki sahifa manbasida yozilmaydi.
-let backendHost = null;
-let backendToken = null;
-
-// ---- 1-qadam: parol bilan kirish (/api/login orqali server tekshiradi) ----
-async function login() {
-  loginErr.textContent = "";
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
-  if (!email || !password) {
-    loginErr.textContent = "Email va parol kiriting.";
-    return;
-  }
-
-  loginBtn.disabled = true;
-  loginBtn.textContent = "Tekshirilmoqda...";
-  log(`login: /api/login ga so'rov ketyapti (email=${email})`);
-
-  try {
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    log(`login: javob keldi, http=${res.status}`, res.ok ? "ok" : "err");
-
-    if (!res.ok) {
-      loginErr.textContent = data.error || "Parol xato.";
-      loginBtn.disabled = false;
-      loginBtn.textContent = "Kirish";
-      return;
-    }
-
-    backendHost = data.host;
-    backendToken = data.token;
-    log(`login: host=${backendHost} token=${backendToken.slice(0, 8)}...`, "ok");
-    passwordInput.value = "";
-    loginOverlay.style.display = "none";
-    startOverlay.style.display = "flex";
-    checkBackendHealth();
-  } catch (e) {
-    log(`login: fetch xato — ${e.message}`, "err");
-    loginErr.textContent = "Server bilan bog'lanib bo'lmadi.";
-    loginBtn.disabled = false;
-    loginBtn.textContent = "Kirish";
-  }
-}
-
-loginBtn.addEventListener("click", login);
-emailInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") passwordInput.focus();
-});
-passwordInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") login();
-});
-
-// ---- 2-qadam: WebSocket session (host/token /api/login'dan kelgan) ----
-// Sahifa ochilganda ULANMAYDI — parol tasdiqlangach ham faqat tugma bosilganda ulanadi.
-startBtn.addEventListener("click", startSession);
-
-// Kompyuterda backend (`cmc --start`) ishlab turgan-turmaganini /health orqali tekshiramiz.
-// Ishlamasa "Start session" o'rniga shuni bildiruvchi matn ko'rsatiladi va tugma bosilmaydi.
-let healthPollTimer = null;
-
-async function checkBackendHealth() {
-  if (!backendHost) return;
-
-  startBtn.disabled = true;
-  startBtn.textContent = "Tekshirilmoqda...";
-  log(`health: https://${backendHost}/health tekshirilmoqda`);
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(`https://${backendHost}/health`, {
-      signal: controller.signal,
-      credentials: "include",
-      headers: { "ngrok-skip-browser-warning": "true" },
-    });
-    clearTimeout(timeout);
-    log(`health: javob http=${res.status}`, res.ok ? "ok" : "err");
-
-    if (res.ok) {
-      if (healthPollTimer) {
-        clearInterval(healthPollTimer);
-        healthPollTimer = null;
+    async function showUrl() {
+      errEl.textContent = "";
+      copied.textContent = "";
+      const email = emailEl.value.trim();
+      const password = passEl.value;
+      if (!email || !password) {
+        errEl.textContent = "Email va parol kiriting";
+        return;
       }
-      startBtn.disabled = false;
-      startBtn.textContent = "Start session";
-      return;
+      btn.disabled = true;
+      try {
+        const res = await fetch("/api/mcp-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          errEl.textContent = data.error || ("Xato " + res.status);
+          return;
+        }
+        urlEl.textContent = data.url;
+        gate.style.display = "none";
+        result.style.display = "block";
+      } catch (e) {
+        errEl.textContent = e.message || "Tarmoq xatosi";
+      } finally {
+        btn.disabled = false;
+      }
     }
-    throw new Error("not ok");
-  } catch (e) {
-    log(`health: xato — ${e.message}`, "err");
-    startBtn.disabled = true;
-    startBtn.textContent = "Kompyuter ulanmagan";
-    if (!healthPollTimer) {
-      healthPollTimer = setInterval(checkBackendHealth, 5000);
-    }
-  }
-}
 
-function startSession() {
-  if (!backendHost || !backendToken) return;
+    btn.addEventListener("click", showUrl);
+    emailEl.addEventListener("keydown", (e) => { if (e.key === "Enter") passEl.focus(); });
+    passEl.addEventListener("keydown", (e) => { if (e.key === "Enter") showUrl(); });
 
-  startBtn.disabled = true;
-  startBtn.textContent = "Ulanmoqda...";
-  setStatus("", "");
-
-  const wsUrl = `wss://${backendHost}/?token=${encodeURIComponent(backendToken)}`;
-  log(`ws: ulanmoqda — ${wsUrl.replace(backendToken, backendToken.slice(0, 8) + "...")}`);
-  const openedAt = Date.now();
-  ws = new WebSocket(wsUrl);
-  ws.binaryType = "arraybuffer";
-
-  ws.onopen = () => {
-    log("ws: onopen — ulanish ochildi", "ok");
-    startOverlay.style.display = "none";
-    fitAddon.fit();
-    updateShellScroller();
-    sendResize();
-  };
-
-  ws.onclose = (e) => {
-    const aliveMs = Date.now() - openedAt;
-    log(`ws: onclose — code=${e.code} reason="${e.reason || "(yo'q)"}" wasClean=${e.wasClean} (${aliveMs}ms ochiq turdi)`, "err");
-    setStatus(e.code === 4001 ? "token xato" : "uzildi", "err");
-    resetToStart();
-  };
-
-  ws.onerror = (e) => {
-    log("ws: onerror — brauzer batafsil sabab bermaydi, onclose'dagi code'ga qara", "err");
-    setStatus("xato", "err");
-  };
-
-  // server -> terminal: darhol yoz, kutmasdan (backpressure'ni brauzer o'zi boshqaradi)
-  ws.onmessage = (ev) => {
-    const data = typeof ev.data === "string" ? ev.data : new Uint8Array(ev.data);
-    term.write(data);
-  };
-}
-
-function resetToStart() {
-  // Ulanish uzilsa, parolni qayta so'ramaymiz — lekin kompyuter hali ham
-  // ulanganmi, shuni qayta tekshiramiz (bekorga "Start session" ko'rsatmaslik uchun).
-  startOverlay.style.display = "flex";
-  checkBackendHealth();
-}
-
-// terminal -> server: yozish tugagach 2 soniya jimlikdan keyin yuboriladi (debounce).
-// Har harf uchun so'rov ketmasin — shell qotmaydi, tez ishlaydi.
-// Enter / Ctrl+C / Ctrl+D / Ctrl+Z kabi maxsus tugmalar darhol yuboriladi.
-let inputBuffer = "";
-let inputDebounceTimer = null;
-const INPUT_DEBOUNCE_MS = 2000;
-
-function flushInputBuffer() {
-  if (inputDebounceTimer) {
-    clearTimeout(inputDebounceTimer);
-    inputDebounceTimer = null;
-  }
-  if (inputBuffer && ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(inputBuffer);
-    inputBuffer = "";
-  }
-}
-
-function isImmediateKey(data) {
-  // Enter, Ctrl+C, Ctrl+D, Ctrl+Z, Ctrl+\, Tab, Esc, backspace-sequence'lar
-  // yoki boshqa boshqaruv belgilari — kutmasdan yuborilsin
-  if (data.length === 0) return true;
-  const code = data.charCodeAt(0);
-  // \r, \n, \t, \x03 (Ctrl+C), \x04 (Ctrl+D), \x1a (Ctrl+Z), \x1c, Esc
-  if (code === 13 || code === 10 || code === 9 || code === 3 || code === 4 || code === 26 || code === 28 || code === 27) {
-    return true;
-  }
-  // Arrow keys / function keys odatda ESC [ ... keladi
-  if (code === 27) return true;
-  return false;
-}
-
-term.onData((data) => {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-  if (isImmediateKey(data)) {
-    // Avval bufferdagi harflarni yubor, keyin maxsus tugmani
-    flushInputBuffer();
-    ws.send(data);
-    return;
-  }
-
-  inputBuffer += data;
-  if (inputDebounceTimer) clearTimeout(inputDebounceTimer);
-  inputDebounceTimer = setTimeout(flushInputBuffer, INPUT_DEBOUNCE_MS);
-});
-
-function sendResize() {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(`\x01${term.cols},${term.rows}`);
-  }
-}
-term.onResize(sendResize);
-
-// ---- Brauzer shortcutlarini o'chirish — Ctrl/Cmd/Alt/F-tugmalar terminalga tegishli,
-// brauzerga (yangi tab, refresh, save va h.k.) berilmaydi. Eslatma: Ctrl+W/Ctrl+T/Ctrl+N
-// kabi ba'zi tugmalarni xavfsizlik sababli brauzerning o'zi bloklashga ruxsat bermaydi —
-// bu JS orqali chetlab o'tib bo'lmaydigan cheklov.
-window.addEventListener(
-  "keydown",
-  (e) => {
-    if (e.ctrlKey || e.metaKey || e.altKey || /^F\d{1,2}$/.test(e.key)) {
-      e.preventDefault();
-    }
-  },
-  { capture: true }
-);
-
-// O'ng tugma menyusi ham o'chirilgan
-window.addEventListener("contextmenu", (e) => e.preventDefault());
-
-// Backspace sahifani orqaga qaytarmasin
-window.addEventListener(
-  "keydown",
-  (e) => {
-    if (e.key === "Backspace" && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
-      e.preventDefault();
-    }
-  },
-  { capture: true }
-);
-
-// ---- O'zimizning shell scroller — brauzer scrollbari emas, terminal uchun maxsus ----
-const shellScroller = document.getElementById("shellScroller");
-const shellScrollerThumb = document.getElementById("shellScrollerThumb");
-
-function updateShellScroller() {
-  const buf = term.buffer.active;
-  const total = buf.length;
-  const rows = term.rows;
-  if (total <= rows) {
-    shellScroller.style.display = "none";
-    return;
-  }
-  shellScroller.style.display = "block";
-  const trackH = shellScroller.clientHeight;
-  const thumbH = Math.max(20, (rows / total) * trackH);
-  const maxScroll = total - rows;
-  const ratio = maxScroll > 0 ? buf.viewportY / maxScroll : 0;
-  shellScrollerThumb.style.height = `${thumbH}px`;
-  shellScrollerThumb.style.top = `${ratio * (trackH - thumbH)}px`;
-}
-
-term.onScroll(updateShellScroller);
-if (term.onWriteParsed) term.onWriteParsed(updateShellScroller);
-window.addEventListener("resize", () => setTimeout(updateShellScroller, 0));
-
-let draggingScroller = false;
-let dragStartY = 0;
-let dragStartTop = 0;
-
-shellScrollerThumb.addEventListener("mousedown", (e) => {
-  draggingScroller = true;
-  dragStartY = e.clientY;
-  dragStartTop = parseFloat(shellScrollerThumb.style.top) || 0;
-  shellScrollerThumb.classList.add("dragging");
-  e.preventDefault();
-});
-
-window.addEventListener("mousemove", (e) => {
-  if (!draggingScroller) return;
-  const trackH = shellScroller.clientHeight;
-  const thumbH = shellScrollerThumb.clientHeight;
-  let newTop = dragStartTop + (e.clientY - dragStartY);
-  newTop = Math.max(0, Math.min(trackH - thumbH, newTop));
-  shellScrollerThumb.style.top = `${newTop}px`;
-
-  const buf = term.buffer.active;
-  const maxScroll = buf.length - term.rows;
-  const ratio = trackH - thumbH > 0 ? newTop / (trackH - thumbH) : 0;
-  term.scrollToLine(Math.round(ratio * maxScroll));
-});
-
-window.addEventListener("mouseup", () => {
-  draggingScroller = false;
-  shellScrollerThumb.classList.remove("dragging");
-});
-
-shellScroller.addEventListener("mousedown", (e) => {
-  if (e.target === shellScrollerThumb) return;
-  const rect = shellScroller.getBoundingClientRect();
-  const clickY = e.clientY - rect.top;
-  const trackH = shellScroller.clientHeight;
-  const thumbH = shellScrollerThumb.clientHeight;
-  const ratio = Math.max(0, Math.min(1, (clickY - thumbH / 2) / (trackH - thumbH)));
-  const buf = term.buffer.active;
-  const maxScroll = buf.length - term.rows;
-  term.scrollToLine(Math.round(ratio * maxScroll));
-});
-
-updateShellScroller();
-</script>
+    copyBtn.addEventListener("click", async () => {
+      const text = urlEl.textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        copied.textContent = "Nusxa olindi";
+      } catch {
+        const r = document.createRange();
+        r.selectNodeContents(urlEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+        copied.textContent = "URL ni Ctrl+C bilan nusxalang";
+      }
+    });
+  </script>
 </body>
 </html>
