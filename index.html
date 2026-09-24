@@ -264,9 +264,51 @@ function resetToStart() {
   checkBackendHealth();
 }
 
-// terminal -> server: har bosilgan tugma darhol jo'natiladi, kechikishsiz
+// terminal -> server: yozish tugagach 1 soniya kutib yuboriladi (debounce).
+// Har harf uchun so'rov ketmasin — shell qotmaydi, tez ishlaydi.
+// Enter / Ctrl+C / Ctrl+D / Ctrl+Z kabi maxsus tugmalar darhol yuboriladi.
+let inputBuffer = "";
+let inputDebounceTimer = null;
+const INPUT_DEBOUNCE_MS = 1000;
+
+function flushInputBuffer() {
+  if (inputDebounceTimer) {
+    clearTimeout(inputDebounceTimer);
+    inputDebounceTimer = null;
+  }
+  if (inputBuffer && ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(inputBuffer);
+    inputBuffer = "";
+  }
+}
+
+function isImmediateKey(data) {
+  // Enter, Ctrl+C, Ctrl+D, Ctrl+Z, Ctrl+\, Tab, Esc, backspace-sequence'lar
+  // yoki boshqa boshqaruv belgilari — kutmasdan yuborilsin
+  if (data.length === 0) return true;
+  const code = data.charCodeAt(0);
+  // \r, \n, \t, \x03 (Ctrl+C), \x04 (Ctrl+D), \x1a (Ctrl+Z), \x1c, Esc
+  if (code === 13 || code === 10 || code === 9 || code === 3 || code === 4 || code === 26 || code === 28 || code === 27) {
+    return true;
+  }
+  // Arrow keys / function keys odatda ESC [ ... keladi
+  if (code === 27) return true;
+  return false;
+}
+
 term.onData((data) => {
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(data);
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+  if (isImmediateKey(data)) {
+    // Avval bufferdagi harflarni yubor, keyin maxsus tugmani
+    flushInputBuffer();
+    ws.send(data);
+    return;
+  }
+
+  inputBuffer += data;
+  if (inputDebounceTimer) clearTimeout(inputDebounceTimer);
+  inputDebounceTimer = setTimeout(flushInputBuffer, INPUT_DEBOUNCE_MS);
 });
 
 function sendResize() {
