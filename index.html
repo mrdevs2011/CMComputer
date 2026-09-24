@@ -264,12 +264,12 @@ function resetToStart() {
   checkBackendHealth();
 }
 
-// terminal -> server: yozish tugagach 1 soniya kutib yuboriladi (debounce).
+// terminal -> server: yozish tugagach 2 soniya jimlikdan keyin yuboriladi (debounce).
 // Har harf uchun so'rov ketmasin — shell qotmaydi, tez ishlaydi.
 // Enter / Ctrl+C / Ctrl+D / Ctrl+Z kabi maxsus tugmalar darhol yuboriladi.
 let inputBuffer = "";
 let inputDebounceTimer = null;
-const INPUT_DEBOUNCE_MS = 1000;
+const INPUT_DEBOUNCE_MS = 2000;
 
 function flushInputBuffer() {
   if (inputDebounceTimer) {
