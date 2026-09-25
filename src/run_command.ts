@@ -1,3 +1,24 @@
+
+function safeParseArgv(command: string): string[] | null {
+  const s = String(command || "").trim();
+  if (!s) return null;
+  if (/[|;&`$()<>]/.test(s) || s.includes("\n")) return null;
+  const parts: string[] = [];
+  let cur = "";
+  let q: string | null = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (q) { if (c === q) q = null; else cur += c; continue; }
+    if (c === '"' || c === "'") { q = c; continue; }
+    if (/\s/.test(c)) { if (cur) { parts.push(cur); cur = ""; } continue; }
+    cur += c;
+  }
+  if (q) return null;
+  if (cur) parts.push(cur);
+  if (!parts.length || parts[0] === "eval" || parts[0] === "exec") return null;
+  return parts;
+}
+
 /**
  * run_command – umumiy buyruq bajarish tooli
  *
