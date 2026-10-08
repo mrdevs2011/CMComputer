@@ -40,7 +40,8 @@ function createServer(): McpServer {
         "Xavfli buyruqlar (rm, dd, git push --force, shutdown va h.k.) " +
         "uchun confirmed:true talab qilinadi. " +
         "cwd berilmasa process.cwd() ishlatiladi. 30 soniya timeout. " +
-        "Natija: stdout, stderr, exitCode, durationMs, riskLevel. " +
+        "HAR DOIM reason (nima uchun bu buyruq) majburiy — audit logga yoziladi. " +
+        "Natija: cwd, command, reason, stdout, stderr, exitCode, durationMs, riskLevel. " +
         "Xavfli buyruq bloklanganda pendingId qaytariladi — dashboard orqali ham tasdiqlash mumkin.",
       inputSchema: z.object({
         command: z
@@ -50,6 +51,15 @@ function createServer(): McpServer {
             "Bajariladigan buyruq. Masalan: 'git status', 'ls -la', " +
               "'mkdir -p ~/MR/NewProject && cd ~/MR/NewProject && git init', " +
               "'ngrok http 3000', 'vercel --prod'"
+          ),
+        reason: z
+          .string()
+          .min(1)
+          .describe(
+            "Nima uchun bu buyruq bajarilayapti (majburiy). Aniq va qisqa yoz. " +
+              "Masalan: 'loyiha dependencylarini o\'rnatish uchun npm install', " +
+              "'git holatini tekshirish', 'build xatosini ko\'rish uchun log o\'qish'. " +
+              "Chatga chiqmasa ham audit logga yoziladi."
           ),
         cwd: z
           .string()
@@ -71,6 +81,7 @@ function createServer(): McpServer {
       touchActivity();
       const result = await runCommand({
         command: args.command,
+        reason: args.reason,
         cwd: args.cwd,
         confirmed: args.confirmed,
       });
@@ -93,6 +104,7 @@ function createServer(): McpServer {
                 `\n\nMisol:\n` +
                 `run_command({\n` +
                 `  command: "${args.command}",\n` +
+                `  reason: "${args.reason}",\n` +
                 `  cwd: ${args.cwd ? `"${args.cwd}"` : "undefined"},\n` +
                 `  confirmed: true\n` +
                 `})`,
@@ -107,6 +119,8 @@ function createServer(): McpServer {
         `exitCode: ${result.exitCode}`,
         `durationMs: ${result.durationMs}`,
         `cwd: ${result.cwd}`,
+        `command: ${args.command}`,
+        `reason: ${args.reason}`,
         `riskLevel: ${result.riskLevel ?? "unknown"}`,
         result.error ? `error: ${result.error}` : null,
         "----- stdout -----",

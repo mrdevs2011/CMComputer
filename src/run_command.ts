@@ -40,6 +40,8 @@ const TIMEOUT_MS = 30_000;
 
 export interface RunCommandInput {
   command: string;
+  /** Nima uchun bu buyruq bajarilayapti — har chaqiruvda majburiy */
+  reason: string;
   cwd?: string;
   confirmed?: boolean;
 }
@@ -91,7 +93,8 @@ export async function runCommand(input: RunCommandInput): Promise<RunCommandResu
       result: "error",
       durationMs: Date.now() - start,
       riskLevel,
-      reason: "confirmation_required",
+      reason: input.reason,
+      error: "confirmation_required",
     });
 
     return {
@@ -120,6 +123,7 @@ export async function runCommand(input: RunCommandInput): Promise<RunCommandResu
       result: "error",
       durationMs: Date.now() - start,
       riskLevel,
+      reason: input.reason,
       error: msg,
     });
     return {
@@ -183,6 +187,7 @@ export async function runCommand(input: RunCommandInput): Promise<RunCommandResu
         durationMs,
         riskLevel,
         confirmed: !!input.confirmed,
+        reason: input.reason,
         error: msg,
       });
       resolvePromise({
@@ -211,7 +216,8 @@ export async function runCommand(input: RunCommandInput): Promise<RunCommandResu
           riskLevel,
           confirmed: !!input.confirmed,
           exitCode: code,
-          reason: "timeout",
+          reason: input.reason,
+          error: "timeout",
         });
         resolvePromise({
           ok: false,
@@ -234,6 +240,7 @@ export async function runCommand(input: RunCommandInput): Promise<RunCommandResu
         riskLevel,
         confirmed: !!input.confirmed,
         exitCode: code,
+        reason: input.reason,
       });
 
       resolvePromise({

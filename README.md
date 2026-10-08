@@ -13,6 +13,7 @@ Claude MCP Computer — `run_command` + xavfli buyruqlar tasdiqlash + local dash
 ```json
 {
   "command": "string (majburiy)",
+  "reason": "string (majburiy) — nima uchun bu buyruq, audit logga yoziladi",
   "cwd": "string (ixtiyoriy)",
   "confirmed": "boolean (ixtiyoriy)"
 }
@@ -93,10 +94,10 @@ npm start          # yoki npm run cmc:start
 ## Misollar
 
 ```text
-run_command({ command: "ls -la" })
-run_command({ command: "rm -rf /tmp/test" })
+run_command({ command: "ls -la", reason: "papka tarkibini ko'rish" })
+run_command({ command: "rm -rf /tmp/test", reason: "vaqtinchalik test papkasini tozalash" })
 → bloklanadi + pendingId (dashboard yoki confirmed:true)
-run_command({ command: "rm -rf /tmp/test", confirmed: true })
+run_command({ command: "rm -rf /tmp/test", reason: "vaqtinchalik test papkasini tozalash", confirmed: true })
 ```
 
 ## Log
