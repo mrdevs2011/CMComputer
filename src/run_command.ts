@@ -31,12 +31,55 @@ function safeParseArgv(command: string): string[] | null {
 
 import { spawn } from "node:child_process";
 import { access, constants } from "node:fs/promises";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { resolve, join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { requiresConfirmation, getRiskLevel } from "./danger.js";
 import { logCommand } from "./audit.js";
 import { addPending } from "./pending.js";
 
 const TIMEOUT_MS = 30_000;
+const CWD_MARKER = "__CMC_FINAL_CWD__:";
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const STATE_DIR = join(__dirname, "..", ".state");
+const LAST_CWD_PATH = join(STATE_DIR, "last-cwd");
+
+function getDefaultCwd(): string {
+  try {
+    if (existsSync(LAST_CWD_PATH)) {
+      const last = readFileSync(LAST_CWD_PATH, "utf8").trim();
+      if (last && existsSync(last)) return last;
+    }
+  } catch {
+    // ignore
+  }
+  return process.env.HOME || "/home/muhamad";
+}
+
+function saveLastCwd(dir: string): void {
+  try {
+    if (!existsSync(STATE_DIR)) mkdirSync(STATE_DIR, { recursive: true });
+    if (dir && existsSync(dir)) writeFileSync(LAST_CWD_PATH, dir + "\n", "utf8");
+  } catch {
+    // ignore
+  }
+}
+
+function extractFinalCwd(stdout: string, fallback: string): { cleanStdout: string; finalCwd: string } {
+  if (!stdout) return { cleanStdout: stdout || "", finalCwd: fallback };
+  const lines = stdout.split("\n");
+  let finalCwd = fallback;
+  const kept: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith(CWD_MARKER)) {
+      const got = line.slice(CWD_MARKER.length).trim();
+      if (got) finalCwd = got;
+    } else {
+      kept.push(line);
+    }
+  }
+  return { cleanStdout: kept.join("\n"), finalCwd };
+}
 
 export interface RunCommandInput {
   command: string;
@@ -60,7 +103,7 @@ export interface RunCommandResult {
 }
 
 async function resolveCwd(requestedCwd?: string): Promise<string> {
-  const base = requestedCwd ? resolve(requestedCwd) : process.cwd();
+  const base = requestedCwd ? resolve(requestedCwd) : getDefaultCwd();
   try {
     await access(base, constants.F_OK);
   } catch {
@@ -157,7 +200,15 @@ export async function runCommand(input: RunCommandInput): Promise<RunCommandResu
     let stderr = "";
     let killedByTimeout = false;
 
-    const child = spawn(input.command, {
+    const shellCmd = [
+      "set +e",
+      input.command,
+      "__cmc_ec=$?",
+      `printf '\\n${CWD_MARKER}%s\\n' "$(pwd)"`,
+      "exit $__cmc_ec",
+    ].join("\n");
+
+    const child = spawn(shellCmd, {
       cwd,
       shell: true,
       env: { ...process.env },
@@ -232,9 +283,14 @@ export async function runCommand(input: RunCommandInput): Promise<RunCommandResu
         return;
       }
 
+      const extracted = extractFinalCwd(stdout, cwd);
+      stdout = extracted.cleanStdout;
+      const finalCwd = extracted.finalCwd;
+      saveLastCwd(finalCwd);
+
       await logCommand({
         command: input.command,
-        cwd,
+        cwd: finalCwd,
         result: code === 0 ? "success" : "error",
         durationMs,
         riskLevel,
@@ -249,7 +305,7 @@ export async function runCommand(input: RunCommandInput): Promise<RunCommandResu
         stderr,
         exitCode: code,
         durationMs,
-        cwd,
+        cwd: finalCwd,
         riskLevel,
       });
     });

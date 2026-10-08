@@ -65,8 +65,8 @@ function createServer(): McpServer {
           .string()
           .optional()
           .describe(
-            "Ish papkasi (ixtiyoriy). Berilmasa process.cwd() ishlatiladi. " +
-              "Mavjud bo'lishi shart — avval mkdir qilish mumkin."
+            "Ish papkasi (ixtiyoriy). Berilmasa oxirgi ishlatilgan papka yoki $HOME " +
+              "(backend papkasi EMAS). Javobda buyruqdan keyingi haqiqiy pwd chiqadi."
           ),
         confirmed: z
           .boolean()
