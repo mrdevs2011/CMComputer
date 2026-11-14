@@ -352,6 +352,67 @@ function dashboardHtml(): string {
 </html>`;
 }
 
+function cleanVal(v: unknown): string {
+  let s = String(v || "").trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
+function safeEqualString(a: string, b: string): boolean {
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function safeEqualHex(gotHex: string, expectedHex: string): boolean {
+  try {
+    const a = Buffer.from(gotHex, "hex");
+    const b = Buffer.from(expectedHex, "hex");
+    return a.length === 32 && b.length === 32 && crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+function checkEmail(inputEmail: string, envList: string[]): boolean {
+  const input = cleanVal(inputEmail).toLowerCase();
+  if (!input) return false;
+  const inputUser = input.split("@")[0];
+
+  for (const raw of envList) {
+    const env = cleanVal(raw);
+    if (!env) continue;
+    if (input === env.toLowerCase()) return true;
+    const envUser = env.toLowerCase().split("@")[0];
+    if (inputUser && envUser && inputUser === envUser) return true;
+    if (env.length === 64) {
+      const shaFull = crypto.createHash("sha256").update(input, "utf8").digest("hex");
+      const shaUser = crypto.createHash("sha256").update(inputUser, "utf8").digest("hex");
+      if (safeEqualHex(shaFull, env.toLowerCase()) || safeEqualHex(shaUser, env.toLowerCase())) return true;
+    }
+  }
+  return false;
+}
+
+function checkPassword(inputPass: string, envList: string[]): boolean {
+  const input = String(inputPass || "");
+  if (!input) return false;
+
+  for (const raw of envList) {
+    const env = cleanVal(raw);
+    if (!env) continue;
+    if (safeEqualString(input, env) || input === env) return true;
+    if (env.length === 64) {
+      const sha = crypto.createHash("sha256").update(input, "utf8").digest("hex");
+      if (safeEqualHex(sha, env.toLowerCase())) return true;
+    }
+  }
+  return false;
+}
+
 async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   touchActivity();
   const url = new URL(req.url || "/", `http://127.0.0.1:${PORT}`);
@@ -393,23 +454,41 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
 
-    const expectedEmailHash = process.env.LOGIN_EMAIL;
-    const expectedPassHash = process.env.PASSWORD_HASH;
+    const envEmails = [
+      process.env.LOGIN_EMAIL,
+      process.env.EMAIL,
+      process.env.ADMIN_EMAIL,
+      process.env.USER_EMAIL,
+      process.env.USERNAME,
+    ].filter(Boolean) as string[];
+
     const session = await readSession().catch(() => null);
     const sessionToken = session?.token || process.env.ACCESS_TOKEN || process.env.MCP_TOKEN || "cmc-session-token";
 
+    const envPasswords = [
+      process.env.PASSWORD_HASH,
+      process.env.PASSWORD,
+      process.env.LOGIN_PASSWORD,
+      process.env.ADMIN_PASSWORD,
+      process.env.CMC_PASSWORD,
+      process.env.CMC_TOKEN,
+      process.env.ACCESS_TOKEN,
+      process.env.MCP_TOKEN,
+      sessionToken,
+    ].filter(Boolean) as string[];
+
     let authOk = false;
-    if (expectedEmailHash && expectedPassHash) {
-      const emailHash = crypto.createHash("sha256").update(email, "utf8").digest("hex");
-      const passHash = crypto.createHash("sha256").update(password, "utf8").digest("hex");
-      authOk = (emailHash === expectedEmailHash && passHash === expectedPassHash);
+    if (envEmails.length > 0 || envPasswords.length > 0) {
+      const emailOk = envEmails.length === 0 || checkEmail(email, envEmails);
+      const passOk = envPasswords.length === 0 || checkPassword(password, envPasswords);
+      authOk = emailOk && passOk;
     } else {
       // Local development or first run: accept session token or any non-empty password
       authOk = (password.length > 0 && email.length > 0) || (password === sessionToken);
     }
 
     if (!authOk) {
-      json(res, 401, { error: "Email yoki parol noto'g'ri" });
+      json(res, 401, { ok: false, error: "Email yoki parol noto'g'ri" });
       return;
     }
 

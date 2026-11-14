@@ -142,10 +142,29 @@
     button.ghost:hover { color: var(--text); border-color: var(--muted); }
 
     .err-msg {
-      min-height: 18px;
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--red);
+      display: none;
+      margin-top: 14px;
+      margin-bottom: 4px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: rgba(248, 81, 73, 0.12);
+      border: 1px solid rgba(248, 81, 73, 0.35);
+      color: #ff7b72;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.4;
+      animation: shake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    .err-msg.visible {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+      40%, 60% { transform: translate3d(3px, 0, 0); }
     }
 
     /* Home Menu Cards */
@@ -634,14 +653,31 @@
       showView(viewMenu);
     }
 
+    function showLoginError(msg) {
+      loginErr.className = "err-msg visible";
+      loginErr.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${escapeHtml(msg)}</span>`;
+      try {
+        passInput.focus();
+        passInput.select();
+      } catch {}
+    }
+
+    function clearLoginError() {
+      loginErr.className = "err-msg";
+      loginErr.innerHTML = "";
+    }
+
+    emailInput.addEventListener("input", clearLoginError);
+    passInput.addEventListener("input", clearLoginError);
+
     // Login Handler
     async function doLogin() {
-      loginErr.textContent = "";
+      clearLoginError();
       const email = emailInput.value.trim();
       const password = passInput.value;
 
       if (!email || !password) {
-        loginErr.textContent = "Email va parol kiriting.";
+        showLoginError("Email va parol kiritilishi shart.");
         return;
       }
 
@@ -666,7 +702,7 @@
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          loginErr.textContent = data.error || ("Xato: " + res.status);
+          showLoginError(data.error || ("Kirishda xatolik yuz berdi (HTTP " + res.status + ")"));
           btnLogin.disabled = false;
           btnLogin.textContent = "Kirish →";
           return;
@@ -685,7 +721,7 @@
         passInput.value = "";
         showView(viewMenu);
       } catch (e) {
-        loginErr.textContent = e.message || "Server bilan bog'lanishda xatolik";
+        showLoginError(e.message || "Server bilan bog'lanishda xatolik yuz berdi");
       } finally {
         btnLogin.disabled = false;
         btnLogin.textContent = "Kirish →";

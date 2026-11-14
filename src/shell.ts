@@ -150,9 +150,17 @@ async function verifyToken(token: string): Promise<boolean> {
     if (session?.token && session.token === t) return true;
   } catch {}
 
-  // 2. Check environment tokens
-  const envToken = process.env.CMC_TOKEN || process.env.ACCESS_TOKEN || process.env.MCP_TOKEN;
-  if (envToken && envToken === t) return true;
+  // 2. Check environment tokens and password
+  const envTokens = [
+    process.env.CMC_TOKEN,
+    process.env.ACCESS_TOKEN,
+    process.env.MCP_TOKEN,
+    process.env.PASSWORD,
+    process.env.PASSWORD_HASH,
+  ].filter(Boolean);
+  for (const et of envTokens) {
+    if (String(et).trim() === t) return true;
+  }
 
   // 3. Fallback: if in development and token matches "cmc" or session preview
   if (t === "cmc-dev-token") return true;
