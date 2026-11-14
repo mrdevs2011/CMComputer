@@ -11,12 +11,20 @@
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { readFile } from "node:fs/promises";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import crypto from "node:crypto";
 import { getRecentCommands } from "./audit.js";
 import { listPending, getPending, setPendingStatus, removePending } from "./pending.js";
 import { runCommand } from "./run_command.js";
-import { touchActivity, getSessionInfo, getIdleTimeoutMs } from "./session.js";
+import { touchActivity, getSessionInfo, getIdleTimeoutMs, readSession } from "./session.js";
+import { setupShellWebSocket } from "./shell.js";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const INDEX_HTML_PATH = join(__dirname, "..", "index.html");
 const PORT = Number(process.env.DASHBOARD_PORT) || 3847;
+const HOST = process.env.DASHBOARD_HOST || "0.0.0.0";
 const STARTED_AT = new Date().toISOString();
 
 function json(res: ServerResponse, status: number, body: unknown): void {
@@ -361,8 +369,62 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
 
-  if (method === "GET" && (path === "/dashboard" || path === "/")) {
+  if (method === "GET" && (path === "/" || path === "/index.html")) {
+    try {
+      const content = await readFile(INDEX_HTML_PATH, "utf8");
+      html(res, content);
+      return;
+    } catch {
+      html(res, dashboardHtml());
+      return;
+    }
+  }
+
+  if (method === "GET" && path === "/dashboard") {
     html(res, dashboardHtml());
+    return;
+  }
+
+  // POST /api/login and POST /api/mcp-url
+  if (method === "POST" && (path === "/api/login" || path === "/api/mcp-url")) {
+    const raw = await readBody(req);
+    let body: any = {};
+    try { body = JSON.parse(raw); } catch {}
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "");
+
+    const expectedEmailHash = process.env.LOGIN_EMAIL;
+    const expectedPassHash = process.env.PASSWORD_HASH;
+    const session = await readSession().catch(() => null);
+    const sessionToken = session?.token || process.env.ACCESS_TOKEN || process.env.MCP_TOKEN || "cmc-session-token";
+
+    let authOk = false;
+    if (expectedEmailHash && expectedPassHash) {
+      const emailHash = crypto.createHash("sha256").update(email, "utf8").digest("hex");
+      const passHash = crypto.createHash("sha256").update(password, "utf8").digest("hex");
+      authOk = (emailHash === expectedEmailHash && passHash === expectedPassHash);
+    } else {
+      // Local development or first run: accept session token or any non-empty password
+      authOk = (password.length > 0 && email.length > 0) || (password === sessionToken);
+    }
+
+    if (!authOk) {
+      json(res, 401, { error: "Email yoki parol noto'g'ri" });
+      return;
+    }
+
+    const hostHeader = req.headers.host || `localhost:${PORT}`;
+    const cleanHost = String(process.env.CMC_WS_HOST || hostHeader).replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const accessToken = process.env.ACCESS_TOKEN || process.env.MCP_TOKEN || sessionToken;
+    const mcpUrl = `https://${cleanHost}/mcp?token=${accessToken}`;
+
+    json(res, 200, {
+      ok: true,
+      url: mcpUrl,
+      mcpUrl: mcpUrl,
+      host: cleanHost,
+      token: sessionToken,
+    });
     return;
   }
 
@@ -422,6 +484,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     try {
       const result = await runCommand({
         command: entry.command,
+        reason: "Dashboard orqali tasdiqlangan",
         cwd: entry.cwd,
         confirmed: true,
       });
@@ -462,8 +525,12 @@ export function startDashboard(): void {
     });
   });
 
-  server.listen(PORT, "127.0.0.1", () => {
-    console.error(`CMC Dashboard: http://127.0.0.1:${PORT}/dashboard`);
+  // Attach interactive WebSocket shell handler
+  setupShellWebSocket(server);
+
+  server.listen(PORT, HOST, () => {
+    console.error(`CMC Web App (Shell & MCP): http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}/`);
+    console.error(`CMC Dashboard: http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}/dashboard`);
   });
 
   server.on("error", (err: NodeJS.ErrnoException) => {

@@ -2,223 +2,998 @@
 <html lang="uz">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CMC — Claude MCP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>CMC — Claude MCP & Computer Shell</title>
+
+  <!-- xterm.js styles -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css" />
+
   <style>
+    :root {
+      --bg: #0d0e14;
+      --card: #161b22;
+      --surface: #1b212c;
+      --border: #30363d;
+      --border-accent: rgba(63, 185, 80, 0.4);
+      --text: #e6edf3;
+      --muted: #7d8590;
+      --green: #3fb950;
+      --green-glow: rgba(63, 185, 80, 0.15);
+      --red: #f85149;
+      --blue: #58a6ff;
+      --cyan: #38bdf8;
+      --amber: #f59e0b;
+      --mono: "JetBrains Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
     html, body {
       margin: 0; padding: 0; min-height: 100%;
-      background: #0d0e14;
-      font-family: "JetBrains Mono", Menlo, Consolas, monospace;
-      color: #e6edf3;
+      background: var(--bg); color: var(--text);
+      font-family: var(--mono);
+      overflow-x: hidden;
     }
-    .wrap {
+
+    /* Views */
+    .view-screen { display: none; width: 100%; min-height: 100vh; }
+    .view-screen.active { display: flex; }
+
+    /* Login & Menu Wrap */
+    .center-wrap {
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
-      box-sizing: border-box;
+      padding: 20px;
     }
+
     .card {
-      width: min(92vw, 480px);
-      background: #161b22;
-      border: 1px solid rgba(63, 185, 80, 0.2);
-      border-radius: 12px;
+      width: min(92vw, 440px);
+      background: var(--card);
+      border: 1px solid var(--border-accent);
+      border-radius: 14px;
       padding: 28px 24px;
-      box-shadow: 0 0 40px rgba(63, 185, 80, 0.06);
+      box-shadow: 0 8px 32px var(--green-glow);
     }
-    .title {
-      font-size: 15px;
+
+    .card-title {
+      font-size: 13px;
       font-weight: 600;
-      letter-spacing: 0.06em;
-      color: #7d8590;
+      letter-spacing: 0.08em;
+      color: var(--muted);
       margin-bottom: 6px;
     }
-    .title span { color: #3fb950; }
+    .card-title span { color: var(--green); }
+
     h1 {
       margin: 0 0 8px;
-      font-size: 20px;
-      font-weight: 600;
-      color: #e6edf3;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
     }
+
     .subtitle {
       margin: 0 0 20px;
-      font-size: 12px;
-      color: #7d8590;
+      font-size: 13px;
+      color: var(--muted);
       line-height: 1.5;
     }
+
     label {
       display: block;
       font-size: 12px;
-      color: #7d8590;
-      margin: 12px 0 6px;
+      color: var(--muted);
+      margin: 14px 0 6px;
     }
     label:first-of-type { margin-top: 0; }
+
     input {
       width: 100%;
       box-sizing: border-box;
-      font: 14px monospace;
-      color: #e6edf3;
-      background: #0d0e14;
-      border: 1px solid #30363d;
+      font: 14px var(--mono);
+      color: var(--text);
+      background: #090b10;
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px 14px;
       outline: none;
+      transition: border-color 0.15s;
     }
-    input:focus { border-color: #3fb950; }
+    input:focus { border-color: var(--green); }
+
     button {
-      width: 100%;
-      margin-top: 14px;
-      font: 14px monospace;
+      font: 14px var(--mono);
       font-weight: 600;
-      color: #0d0e14;
-      background: #3fb950;
-      border: none;
       border-radius: 8px;
-      padding: 12px 16px;
       cursor: pointer;
+      transition: all 0.15s;
+      outline: none;
     }
-    button:hover:not(:disabled) { background: #56d364; }
-    button:disabled { opacity: 0.5; cursor: default; }
+    button.primary {
+      width: 100%;
+      margin-top: 16px;
+      color: #0d0e14;
+      background: var(--green);
+      border: none;
+      padding: 12px 18px;
+    }
+    button.primary:hover:not(:disabled) { background: #52e067; }
+    button.primary:disabled { opacity: 0.5; cursor: default; }
+
     button.secondary {
+      width: 100%;
       background: transparent;
-      color: #3fb950;
-      border: 1px solid rgba(63, 185, 80, 0.35);
+      color: var(--green);
+      border: 1px solid var(--border-accent);
+      padding: 11px 16px;
       margin-top: 10px;
     }
-    button.secondary:hover:not(:disabled) {
-      background: rgba(63, 185, 80, 0.1);
+    button.secondary:hover:not(:disabled) { background: var(--green-glow); }
+
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 7px 12px;
+      font-size: 12px;
     }
-    .err {
+    button.ghost:hover { color: var(--text); border-color: var(--muted); }
+
+    .err-msg {
       min-height: 18px;
       margin-top: 10px;
       font-size: 12px;
-      color: #f85149;
+      color: var(--red);
     }
+
+    /* Home Menu Cards */
+    .menu-container {
+      width: min(92vw, 560px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 0 auto;
+    }
+
+    .menu-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .menu-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+    .status-dot.off { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    @media (min-width: 600px) {
+      .menu-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .action-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .action-card:hover {
+      border-color: var(--green);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--green-glow);
+    }
+
+    .action-card.featured {
+      border-color: var(--border-accent);
+      background: linear-gradient(180deg, rgba(63,185,80,0.06) 0%, rgba(22,27,34,1) 100%);
+    }
+
+    .card-badge {
+      position: absolute;
+      top: 14px; right: 14px;
+      background: var(--green-glow);
+      color: var(--green);
+      border: 1px solid var(--border-accent);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .action-icon {
+      font-size: 26px;
+      margin-bottom: 14px;
+      display: inline-block;
+    }
+
+    .action-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .action-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 18px;
+      flex-grow: 1;
+    }
+
+    .action-btn-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Get MCP Screen */
     .url-box {
-      margin-top: 8px;
+      margin-top: 10px;
       padding: 14px;
-      background: #0d0e14;
-      border: 1px solid #30363d;
+      background: #080a0f;
+      border: 1px solid var(--border);
       border-radius: 8px;
       word-break: break-all;
       font-size: 12px;
       line-height: 1.5;
-      color: #3fb950;
+      color: var(--green);
       user-select: all;
     }
-    .hint {
-      margin-top: 14px;
+
+    .hint-box {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .hint-box code {
+      background: #080a0f;
+      color: var(--cyan);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* FULLSCREEN SHELL VIEW */
+    #view-shell {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: #080a0f;
+      z-index: 9999;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #view-shell.active {
+      display: flex;
+    }
+
+    /* Top Shell Toolbar */
+    .shell-topbar {
+      height: 40px;
+      background: #11141c;
+      border-bottom: 1px solid #232833;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .shell-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .shell-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .shell-btn {
+      background: #191e28;
+      color: var(--muted);
+      border: 1px solid #2a3140;
+      border-radius: 6px;
+      padding: 4px 10px;
       font-size: 11px;
-      color: #7d8590;
-      line-height: 1.5;
+      cursor: pointer;
     }
-    .ok { color: #3fb950; font-size: 12px; margin-top: 8px; min-height: 18px; }
-    .badge {
-      display: inline-block;
-      font-size: 10px;
-      letter-spacing: 0.04em;
-      color: #3fb950;
-      border: 1px solid rgba(63, 185, 80, 0.35);
-      border-radius: 999px;
-      padding: 3px 10px;
-      margin-bottom: 14px;
+    .shell-btn:hover { color: var(--text); border-color: var(--green); }
+    .shell-btn.active { background: var(--green); color: #0d0e14; border-color: var(--green); }
+
+    /* Terminal Container */
+    #terminal-container {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: #080a0f;
+      overflow: hidden;
     }
-    #result { display: none; }
+
+    #terminal-container .xterm {
+      padding: 6px 8px;
+      height: 100%;
+    }
+
+    /* Virtual Keyboard Accessory Bar (Termux / Blink Style) */
+    .accessory-bar {
+      background: #11141c;
+      border-top: 1px solid #232833;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .accessory-bar::-webkit-scrollbar { display: none; }
+
+    .acc-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      min-width: 38px;
+      padding: 0 10px;
+      background: #1c2230;
+      color: var(--text);
+      border: 1px solid #2d3647;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+      transition: background 0.1s, transform 0.05s;
+    }
+    .acc-key:active {
+      background: #2a3449;
+      transform: scale(0.95);
+    }
+
+    .acc-key.modifier {
+      background: #1a2333;
+      color: var(--cyan);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .acc-key.modifier.active {
+      background: var(--green);
+      color: #080a0f;
+      border-color: var(--green);
+      box-shadow: 0 0 10px rgba(63, 185, 80, 0.5);
+    }
+
+    .acc-key.accent {
+      color: var(--green);
+      border-color: rgba(63, 185, 80, 0.35);
+    }
+
+    .acc-key.danger {
+      color: var(--red);
+      border-color: rgba(248, 81, 73, 0.35);
+    }
+
+    .acc-key.sym {
+      color: var(--muted);
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <div class="title">[ <span>CMC</span> ]</div>
-      <h1>Claude MCP</h1>
-      <p class="subtitle">Brauzerda faqat MCP. Terminal / shell yo‘q — kompyuter faqat MCP orqali.</p>
-      <div class="badge">MCP ONLY · NO TERMINAL</div>
 
-      <div id="gate">
-        <label for="email">Email</label>
-        <input id="email" type="email" placeholder="you@example.com" autocomplete="username" />
-        <label for="pass">Parol</label>
-        <input id="pass" type="password" placeholder="Parol" autocomplete="current-password" />
-        <div class="err" id="err"></div>
-        <button id="btn" type="button">MCP URL olish</button>
-        <p class="hint">Email va parol to‘g‘ri bo‘lsa Claude ga beriladigan MCP manzil chiqadi. Shell yoki terminal ochilmaydi.</p>
+  <!-- VIEW 1: LOGIN -->
+  <div id="view-login" class="view-screen active center-wrap">
+    <div class="card">
+      <div class="card-title">[ <span>CMC</span> ] · COMPUTER GATEWAY</div>
+      <h1>Kirish</h1>
+      <p class="subtitle">Claude MCP va kompyuter shell boshqaruvi uchun tizimga kiring.</p>
+
+      <label for="login-email">Email / Username</label>
+      <input id="login-email" type="email" placeholder="you@example.com" autocomplete="username" />
+
+      <label for="login-pass">Parol / Sessiya tokeni</label>
+      <input id="login-pass" type="password" placeholder="Parol yoki token" autocomplete="current-password" />
+
+      <div id="login-err" class="err-msg"></div>
+
+      <button id="btn-login" class="primary" type="button">Kirish →</button>
+    </div>
+  </div>
+
+  <!-- VIEW 2: HOME MENU -->
+  <div id="view-menu" class="view-screen center-wrap">
+    <div class="menu-container">
+      <div class="menu-topbar">
+        <div class="menu-brand">
+          <span class="status-dot"></span>
+          <span>CMC COMPUTER</span>
+        </div>
+        <button id="btn-logout" class="ghost" type="button">Chiqish</button>
       </div>
 
-      <div id="result">
-        <label>Claude custom connector URL</label>
-        <div class="url-box" id="url"></div>
-        <div class="ok" id="copied"></div>
-        <button class="secondary" id="copy" type="button">Nusxa olish</button>
-        <p class="hint">
-          Claude → Settings → Connectors → Add custom connector.<br />
-          Shu URL ni to‘liq joylashtiring.<br />
-          Kompyuter boshqaruvi faqat MCP <code>run_command</code> orqali.
-        </p>
+      <h1 style="font-size:24px;margin-bottom:4px">Boshqaruv Markazi</h1>
+      <p class="subtitle" style="margin-bottom:16px">Quyidagi amallardan birini tanlang:</p>
+
+      <div class="menu-grid">
+        <!-- 1: Get MCP -->
+        <div class="action-card" id="card-get-mcp">
+          <div>
+            <div class="action-icon">⚡</div>
+            <div class="action-title">Get MCP</div>
+            <div class="action-desc">Claude AI uchun maxsus MCP ulash manzilini olish, nusxalash va sozlash.</div>
+          </div>
+          <div class="action-btn-text">MCP URL olish →</div>
+        </div>
+
+        <!-- 2: Go Shell -->
+        <div class="action-card featured" id="card-go-shell">
+          <div class="card-badge">YANGI</div>
+          <div>
+            <div class="action-icon">💻</div>
+            <div class="action-title">Go Shell</div>
+            <div class="action-desc">Kompyuteringizdagi bash shell'ni bevosita ochish. Telefon va kompyuterdan to'liq foydalanish imkoniyati.</div>
+          </div>
+          <div class="action-btn-text" style="color:var(--green)">Shellga kirish (Fullscreen) →</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <script>
-    const emailEl = document.getElementById("email");
-    const passEl = document.getElementById("pass");
-    const errEl = document.getElementById("err");
-    const btn = document.getElementById("btn");
-    const gate = document.getElementById("gate");
-    const result = document.getElementById("result");
-    const urlEl = document.getElementById("url");
-    const copyBtn = document.getElementById("copy");
-    const copied = document.getElementById("copied");
+  <!-- VIEW 3: GET MCP -->
+  <div id="view-mcp" class="view-screen center-wrap">
+    <div class="card" style="width:min(92vw, 540px)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="card-title">[ <span>MCP</span> ] · CLAUDE CONNECTOR</div>
+        <button id="btn-back-menu" class="ghost" type="button">← Orqaga</button>
+      </div>
 
-    async function showUrl() {
-      errEl.textContent = "";
-      copied.textContent = "";
-      const email = emailEl.value.trim();
-      const password = passEl.value;
+      <h1>Claude MCP URL</h1>
+      <p class="subtitle">Claude AI ga quyidagi manzilni Custom Connector sifatida qo'shing:</p>
+
+      <label>Maxsus Connector URL</label>
+      <div class="url-box" id="mcp-url-display">Yuklanmoqda...</div>
+
+      <div id="mcp-copied-msg" style="color:var(--green);font-size:12px;margin-top:6px;min-height:16px"></div>
+      <button id="btn-copy-mcp" class="secondary" type="button">📋 Nusxa olish</button>
+
+      <div class="hint-box">
+        <strong>Ulash bo'yicha ko'rsatma:</strong><br />
+        1. Claude.ai da <code>Settings</code> → <code>Connectors</code> → <code>Add custom connector</code><br />
+        2. Yuqoridagi to'liq URL manzilni kiriting<br />
+        3. Claude kompyuteringizda <code>run_command</code> orqali buyruqlarni xavfsiz boshqaradi.
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 4: GO SHELL FULLSCREEN -->
+  <div id="view-shell">
+    <div class="shell-topbar">
+      <div class="shell-brand">
+        <span class="status-dot" id="shell-status-dot"></span>
+        <span id="shell-status-text">CMC Shell</span>
+        <span style="color:#555;font-size:11px">|</span>
+        <span id="shell-host-label" style="color:var(--cyan);font-size:11px">bash</span>
+      </div>
+
+      <div class="shell-actions">
+        <button id="btn-fullscreen-toggle" class="shell-btn" title="Fullscreen">⛶</button>
+        <button id="btn-shell-reconnect" class="shell-btn" title="Qayta ulanish">↻</button>
+        <button id="btn-shell-clear" class="shell-btn" title="Tozalash">Clear</button>
+        <button id="btn-exit-shell" class="shell-btn" style="color:var(--red);border-color:rgba(248,81,73,0.3)" title="Chiqish">← Menu</button>
+      </div>
+    </div>
+
+    <!-- Terminal Canvas Wrapper -->
+    <div id="terminal-container"></div>
+
+    <!-- Mobile Virtual Keyboard Accessory Bar -->
+    <div class="accessory-bar" id="acc-bar">
+      <button class="acc-key accent" data-key="ESC">ESC</button>
+      <button class="acc-key accent" data-key="TAB">TAB</button>
+      <button class="acc-key modifier" id="acc-ctrl" data-mod="CTRL">CTRL</button>
+      <button class="acc-key modifier" id="acc-alt" data-mod="ALT">ALT</button>
+      
+      <!-- Arrows -->
+      <button class="acc-key" data-key="UP" title="Up Arrow">↑</button>
+      <button class="acc-key" data-key="DOWN" title="Down Arrow">↓</button>
+      <button class="acc-key" data-key="LEFT" title="Left Arrow">←</button>
+      <button class="acc-key" data-key="RIGHT" title="Right Arrow">→</button>
+
+      <!-- Quick Shortcuts -->
+      <button class="acc-key danger" data-key="CTRL_C">Ctrl+C</button>
+      <button class="acc-key" data-key="CTRL_D">Ctrl+D</button>
+      <button class="acc-key" data-key="CTRL_Z">Ctrl+Z</button>
+      <button class="acc-key" data-key="CTRL_L">Ctrl+L</button>
+      <button class="acc-key" data-key="CTRL_A">Ctrl+A</button>
+      <button class="acc-key" data-key="CTRL_E">Ctrl+E</button>
+
+      <!-- Nav -->
+      <button class="acc-key" data-key="HOME">HOME</button>
+      <button class="acc-key" data-key="END">END</button>
+      <button class="acc-key" data-key="PGUP">PGUP</button>
+      <button class="acc-key" data-key="PGDN">PGDN</button>
+
+      <!-- Handy Shell Characters -->
+      <button class="acc-key sym" data-key="|">|</button>
+      <button class="acc-key sym" data-key="~">~</button>
+      <button class="acc-key sym" data-key="/">/</button>
+      <button class="acc-key sym" data-key="-">-</button>
+      <button class="acc-key sym" data-key="_">_</button>
+      <button class="acc-key sym" data-key="\\">\</button>
+      <button class="acc-key sym" data-key="`">`</button>
+      <button class="acc-key sym" data-key="$">$</button>
+      <button class="acc-key sym" data-key="&">&</button>
+      <button class="acc-key sym" data-key=";">;</button>
+      <button class="acc-key sym" data-key=">">&gt;</button>
+      <button class="acc-key sym" data-key="<">&lt;</button>
+      <button class="acc-key sym" data-key='"'>"</button>
+      <button class="acc-key sym" data-key="'">'</button>
+    </div>
+  </div>
+
+  <!-- Scripts: xterm.js + addons -->
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-webgl@0.18.0/lib/addon-webgl.min.js"></script>
+
+  <script>
+    // State
+    const state = {
+      email: sessionStorage.getItem("cmc_email") || "",
+      token: sessionStorage.getItem("cmc_token") || "",
+      host: sessionStorage.getItem("cmc_host") || location.host,
+      mcpUrl: sessionStorage.getItem("cmc_mcp_url") || "",
+    };
+
+    // DOM Elements
+    const viewLogin = document.getElementById("view-login");
+    const viewMenu = document.getElementById("view-menu");
+    const viewMcp = document.getElementById("view-mcp");
+    const viewShell = document.getElementById("view-shell");
+
+    const emailInput = document.getElementById("login-email");
+    const passInput = document.getElementById("login-pass");
+    const btnLogin = document.getElementById("btn-login");
+    const loginErr = document.getElementById("login-err");
+
+    const btnLogout = document.getElementById("btn-logout");
+    const cardGetMcp = document.getElementById("card-get-mcp");
+    const cardGoShell = document.getElementById("card-go-shell");
+
+    const mcpUrlDisplay = document.getElementById("mcp-url-display");
+    const btnCopyMcp = document.getElementById("btn-copy-mcp");
+    const mcpCopiedMsg = document.getElementById("mcp-copied-msg");
+    const btnBackMenu = document.getElementById("btn-back-menu");
+
+    const btnExitShell = document.getElementById("btn-exit-shell");
+    const btnFullscreenToggle = document.getElementById("btn-fullscreen-toggle");
+    const btnShellReconnect = document.getElementById("btn-shell-reconnect");
+    const btnShellClear = document.getElementById("btn-shell-clear");
+    const shellStatusDot = document.getElementById("shell-status-dot");
+    const shellStatusText = document.getElementById("shell-status-text");
+    const shellHostLabel = document.getElementById("shell-host-label");
+    const accCtrlBtn = document.getElementById("acc-ctrl");
+    const accAltBtn = document.getElementById("acc-alt");
+
+    // Switch view helper
+    function showView(viewEl) {
+      [viewLogin, viewMenu, viewMcp, viewShell].forEach(el => el.classList.remove("active"));
+      viewEl.classList.add("active");
+    }
+
+    // Auto-login if session exists
+    if (state.token && state.mcpUrl) {
+      showView(viewMenu);
+    }
+
+    // Login Handler
+    async function doLogin() {
+      loginErr.textContent = "";
+      const email = emailInput.value.trim();
+      const password = passInput.value;
+
       if (!email || !password) {
-        errEl.textContent = "Email va parol kiriting";
+        loginErr.textContent = "Email va parol kiriting.";
         return;
       }
-      btn.disabled = true;
+
+      btnLogin.disabled = true;
+      btnLogin.textContent = "Tekshirilmoqda...";
+
       try {
-        const res = await fetch("/api/mcp-url", {
+        // Try /api/login first, then /api/mcp-url
+        let res = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         });
+
+        if (res.status === 404 || res.status === 403) {
+          res = await fetch("/api/mcp-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+        }
+
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          errEl.textContent = data.error || ("Xato " + res.status);
+          loginErr.textContent = data.error || ("Xato: " + res.status);
+          btnLogin.disabled = false;
+          btnLogin.textContent = "Kirish →";
           return;
         }
-        urlEl.textContent = data.url;
-        gate.style.display = "none";
-        result.style.display = "block";
+
+        state.email = email;
+        state.token = data.token || password;
+        state.host = data.host || location.host;
+        state.mcpUrl = data.mcpUrl || data.url || `https://${state.host}/mcp?token=${state.token}`;
+
+        sessionStorage.setItem("cmc_email", state.email);
+        sessionStorage.setItem("cmc_token", state.token);
+        sessionStorage.setItem("cmc_host", state.host);
+        sessionStorage.setItem("cmc_mcp_url", state.mcpUrl);
+
+        passInput.value = "";
+        showView(viewMenu);
       } catch (e) {
-        errEl.textContent = e.message || "Tarmoq xatosi";
+        loginErr.textContent = e.message || "Server bilan bog'lanishda xatolik";
       } finally {
-        btn.disabled = false;
+        btnLogin.disabled = false;
+        btnLogin.textContent = "Kirish →";
       }
     }
 
-    btn.addEventListener("click", showUrl);
-    emailEl.addEventListener("keydown", (e) => { if (e.key === "Enter") passEl.focus(); });
-    passEl.addEventListener("keydown", (e) => { if (e.key === "Enter") showUrl(); });
+    btnLogin.addEventListener("click", doLogin);
+    emailInput.addEventListener("keydown", (e) => { if (e.key === "Enter") passInput.focus(); });
+    passInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
 
-    copyBtn.addEventListener("click", async () => {
-      const text = urlEl.textContent;
+    // Logout
+    btnLogout.addEventListener("click", () => {
+      sessionStorage.clear();
+      state.email = "";
+      state.token = "";
+      state.mcpUrl = "";
+      showView(viewLogin);
+    });
+
+    // Menu Item 1: Get MCP
+    cardGetMcp.addEventListener("click", () => {
+      mcpUrlDisplay.textContent = state.mcpUrl || "URL mavjud emas";
+      mcpCopiedMsg.textContent = "";
+      showView(viewMcp);
+    });
+
+    btnBackMenu.addEventListener("click", () => {
+      showView(viewMenu);
+    });
+
+    btnCopyMcp.addEventListener("click", async () => {
+      const text = mcpUrlDisplay.textContent;
       try {
         await navigator.clipboard.writeText(text);
-        copied.textContent = "Nusxa olindi";
+        mcpCopiedMsg.textContent = "✓ Nusxa olindi!";
       } catch {
         const r = document.createRange();
-        r.selectNodeContents(urlEl);
+        r.selectNodeContents(mcpUrlDisplay);
         const sel = window.getSelection();
         sel.removeAllRanges();
         sel.addRange(r);
-        copied.textContent = "URL ni Ctrl+C bilan nusxalang";
+        mcpCopiedMsg.textContent = "URL ni Ctrl+C bilan nusxalang";
       }
+      setTimeout(() => { mcpCopiedMsg.textContent = ""; }, 3000);
     });
+
+    // Menu Item 2: Go Shell (Fullscreen Terminal)
+    cardGoShell.addEventListener("click", () => {
+      enterShell();
+    });
+
+    btnExitShell.addEventListener("click", () => {
+      exitShell();
+    });
+
+    // Terminal & Shell WebSocket Management
+    let term = null;
+    let fitAddon = null;
+    let ws = null;
+    let ctrlSticky = false;
+    let altSticky = false;
+
+    function initTerminal() {
+      if (term) return;
+
+      const container = document.getElementById("terminal-container");
+      term = new Terminal({
+        cursorBlink: true,
+        cursorStyle: "block",
+        fontFamily: "'JetBrains Mono', Menlo, Consolas, monospace",
+        fontSize: window.innerWidth < 600 ? 12 : 14,
+        lineHeight: 1.25,
+        theme: {
+          background: "#080a0f",
+          foreground: "#e6edf3",
+          cursor: "#3fb950",
+          selectionBackground: "rgba(63, 185, 80, 0.3)",
+          black: "#0d0e14",
+          red: "#f85149",
+          green: "#3fb950",
+          yellow: "#d29922",
+          blue: "#58a6ff",
+          magenta: "#bc8cff",
+          cyan: "#39c5cf",
+          white: "#b1bac4",
+          brightBlack: "#484f58",
+          brightRed: "#ff7b72",
+          brightGreen: "#56d364",
+          brightYellow: "#e3b341",
+          brightBlue: "#79c0ff",
+          brightMagenta: "#d2a8ff",
+          brightCyan: "#56d4dd",
+          brightWhite: "#f0f6fc",
+        },
+        scrollback: 10000,
+        allowTransparency: true,
+      });
+
+      fitAddon = new FitAddon.FitAddon();
+      term.loadAddon(fitAddon);
+      term.open(container);
+
+      try {
+        term.loadAddon(new WebglAddon.WebglAddon());
+      } catch (e) {
+        // Fallback to DOM/canvas
+      }
+
+      // Handle user key inputs in terminal
+      term.onData((data) => {
+        let payload = data;
+
+        // Apply sticky modifier keys if toggled
+        if (ctrlSticky && payload.length === 1) {
+          const code = payload.toUpperCase().charCodeAt(0);
+          if (code >= 64 && code <= 95) {
+            payload = String.fromCharCode(code - 64);
+          }
+          toggleCtrl(false);
+        }
+
+        if (altSticky && payload.length >= 1) {
+          payload = "\x1b" + payload;
+          toggleAlt(false);
+        }
+
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(payload);
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        if (viewShell.classList.contains("active")) {
+          resizeTerminal();
+        }
+      });
+    }
+
+    function resizeTerminal() {
+      if (!term || !fitAddon) return;
+      try {
+        fitAddon.fit();
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(`\x01${term.cols},${term.rows}`);
+        }
+      } catch (e) {}
+    }
+
+    function enterShell() {
+      // 1. Request fullscreen on user gesture
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+      }
+
+      // 2. Show shell view
+      showView(viewShell);
+      initTerminal();
+
+      // Small delay to ensure view is rendered before fit calculation
+      setTimeout(() => {
+        resizeTerminal();
+        connectWebSocket();
+        term.focus();
+      }, 100);
+    }
+
+    function exitShell() {
+      // Exit fullscreen if active
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitFullscreenElement) {
+        document.webkitExitFullscreen();
+      }
+
+      // Disconnect WebSocket
+      if (ws) {
+        try { ws.close(); } catch (e) {}
+        ws = null;
+      }
+
+      showView(viewMenu);
+    }
+
+    function connectWebSocket() {
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
+
+      setShellStatus("ulanmoqda...", false);
+      const isHttps = location.protocol === "https:";
+      const wsProto = isHttps ? "wss:" : "ws:";
+      const targetHost = state.host || location.host;
+      const wsUrl = `${wsProto}//${targetHost}/ws?token=${encodeURIComponent(state.token)}&cols=${term.cols || 80}&rows=${term.rows || 24}`;
+
+      shellHostLabel.textContent = targetHost;
+
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.binaryType = "arraybuffer";
+
+        ws.onopen = () => {
+          setShellStatus("ulandi", true);
+          resizeTerminal();
+          term.focus();
+        };
+
+        ws.onmessage = (ev) => {
+          const data = typeof ev.data === "string" ? ev.data : new Uint8Array(ev.data);
+          term.write(data);
+        };
+
+        ws.onclose = (ev) => {
+          setShellStatus(ev.code === 1000 ? "yopildi" : "uzildi", false);
+        };
+
+        ws.onerror = () => {
+          setShellStatus("xatolik", false);
+        };
+      } catch (e) {
+        setShellStatus("xatolik", false);
+      }
+    }
+
+    function setShellStatus(text, isOk) {
+      shellStatusText.textContent = text;
+      shellStatusDot.className = "status-dot " + (isOk ? "" : "off");
+    }
+
+    btnShellReconnect.addEventListener("click", () => {
+      if (ws) { try { ws.close(); } catch (e) {} }
+      connectWebSocket();
+    });
+
+    btnShellClear.addEventListener("click", () => {
+      if (term) term.clear();
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send("\x0c");
+    });
+
+    btnFullscreenToggle.addEventListener("click", () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+      setTimeout(resizeTerminal, 150);
+    });
+
+    // Virtual Keyboard Accessory Bar logic
+    function toggleCtrl(forced) {
+      ctrlSticky = typeof forced === "boolean" ? forced : !ctrlSticky;
+      accCtrlBtn.classList.toggle("active", ctrlSticky);
+    }
+
+    function toggleAlt(forced) {
+      altSticky = typeof forced === "boolean" ? forced : !altSticky;
+      accAltBtn.classList.toggle("active", altSticky);
+    }
+
+    accCtrlBtn.addEventListener("click", () => toggleCtrl());
+    accAltBtn.addEventListener("click", () => toggleAlt());
+
+    document.getElementById("acc-bar").addEventListener("click", (e) => {
+      const btn = e.target.closest(".acc-key");
+      if (!btn) return;
+      if (btn.id === "acc-ctrl" || btn.id === "acc-alt") return;
+
+      const key = btn.dataset.key;
+      if (!key) return;
+
+      let sendData = "";
+      switch (key) {
+        case "ESC": sendData = "\x1b"; break;
+        case "TAB": sendData = "\t"; break;
+        case "UP": sendData = "\x1b[A"; break;
+        case "DOWN": sendData = "\x1b[B"; break;
+        case "LEFT": sendData = "\x1b[D"; break;
+        case "RIGHT": sendData = "\x1b[C"; break;
+        case "HOME": sendData = "\x1b[H"; break;
+        case "END": sendData = "\x1b[F"; break;
+        case "PGUP": sendData = "\x1b[5~"; break;
+        case "PGDN": sendData = "\x1b[6~"; break;
+        case "CTRL_C": sendData = "\x03"; break;
+        case "CTRL_D": sendData = "\x04"; break;
+        case "CTRL_Z": sendData = "\x1a"; break;
+        case "CTRL_L": sendData = "\x0c"; break;
+        case "CTRL_A": sendData = "\x01"; break;
+        case "CTRL_E": sendData = "\x05"; break;
+        default:
+          sendData = key;
+          break;
+      }
+
+      if (sendData && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(sendData);
+      }
+      if (term) term.focus();
+    });
+
   </script>
 </body>
 </html>
