@@ -19,6 +19,7 @@ export function setupShellWebSocket(server: Server): WebSocketServer {
 
   server.on("upgrade", async (req, socket, head) => {
     touchActivity();
+    (socket as any).setNoDelay?.(true);
     const url = new URL(req.url || "/", "http://localhost");
     const p = url.pathname;
 

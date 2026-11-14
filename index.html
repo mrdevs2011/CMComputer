@@ -25,7 +25,6 @@
       --green: #30ff91;
       --green-glow: rgba(48, 255, 145, 0.12);
       --red: #f85149;
-      --red-glow: rgba(248, 81, 73, 0.15);
       --cyan: #38bdf8;
       --mono: "JetBrains Mono", Menlo, Consolas, monospace;
       --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -35,23 +34,39 @@
 
     html, body {
       margin: 0; padding: 0;
-      min-height: 100%;
+      width: 100%; height: 100%;
       background: var(--bg);
       color: var(--text);
       font-family: var(--sans);
-      overflow-x: hidden;
+      overflow: hidden;
+      user-select: none;
     }
 
     code, pre, .mono {
       font-family: var(--mono);
     }
 
-    /* Views */
-    .view-screen { display: none; width: 100%; min-height: 100vh; }
-    .view-screen.active { display: flex; }
+    /* REAL INDEPENDENT PAGES (Zero vertical page-scroll pollution) */
+    .view-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      background: var(--bg);
+      z-index: 10;
+    }
+    .view-screen.active {
+      display: flex;
+    }
 
     .center-wrap {
-      min-height: 100vh;
+      min-height: 100%;
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -68,6 +83,7 @@
       padding: 30px 26px;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
       position: relative;
+      user-select: text;
     }
 
     .badge-wrap {
@@ -149,6 +165,7 @@
       padding: 12px 14px 12px 40px;
       outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
+      user-select: text;
     }
 
     input:focus {
@@ -295,6 +312,7 @@
       display: flex;
       flex-direction: column;
       gap: 20px;
+      user-select: text;
     }
 
     .topbar {
@@ -327,11 +345,6 @@
       padding: 3px 9px;
       border-radius: 999px;
       font-family: var(--mono);
-    }
-    .status-pill.offline {
-      color: var(--red);
-      background: var(--red-glow);
-      border-color: rgba(248, 81, 73, 0.35);
     }
 
     .status-dot {
@@ -482,7 +495,7 @@
       height: 100vh;
       height: 100dvh;
       background: #080a0f;
-      z-index: 9999;
+      z-index: 100;
       display: none;
       flex-direction: column;
       overflow: hidden;
@@ -490,7 +503,7 @@
     #view-shell.active { display: flex; }
 
     .shell-topbar {
-      height: 42px;
+      height: 40px;
       background: #0f121a;
       border-bottom: 1px solid var(--border);
       display: flex;
@@ -521,7 +534,7 @@
       color: var(--text-muted);
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 5px 9px;
+      padding: 4px 8px;
       font-size: 12px;
       cursor: pointer;
       display: inline-flex;
@@ -545,11 +558,11 @@
     }
 
     #terminal-container .xterm {
-      padding: 6px 8px;
+      padding: 4px 6px;
       height: 100%;
     }
 
-    /* Mobile Keyboard Accessory Bar */
+    /* MOBILE ACCESSORY BAR: ONLY SHOWN ON TOUCH / PHONES */
     .accessory-bar {
       background: #0f121a;
       border-top: 1px solid var(--border);
@@ -566,6 +579,18 @@
       z-index: 10;
     }
     .accessory-bar::-webkit-scrollbar { display: none; }
+
+    /* ON PC/DESKTOP (COMPUTERS WITH KEYBOARD), HIDE ACCESSORY BAR COMPLETELY */
+    @media (min-width: 768px) {
+      .accessory-bar {
+        display: none !important;
+      }
+    }
+    @media (hover: hover) and (pointer: fine) and (min-width: 640px) {
+      .accessory-bar {
+        display: none !important;
+      }
+    }
 
     .acc-key {
       display: inline-flex;
@@ -621,162 +646,168 @@
 </head>
 <body>
 
-  <!-- VIEW 1: LOGIN -->
-  <div id="view-login" class="view-screen active center-wrap">
-    <div class="card">
-      <div class="badge-wrap">
-        <span class="tag">CMC</span>
-        <span>Computer Gateway</span>
-      </div>
-
-      <h1>Kirish</h1>
-      <p class="subtitle">Claude MCP va kompyuter shell boshqaruvi uchun tizimga kiring.</p>
-
-      <div class="field-group">
-        <label for="login-email">Email / Username</label>
-        <div class="input-wrap">
-          <input id="login-email" type="text" placeholder="you@example.com" autocomplete="username" spellcheck="false" />
-          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-          </svg>
+  <!-- VIEW 1: LOGIN PAGE (#/login) -->
+  <div id="view-login" class="view-screen active">
+    <div class="center-wrap">
+      <div class="card">
+        <div class="badge-wrap">
+          <span class="tag">CMC</span>
+          <span>Computer Gateway</span>
         </div>
-      </div>
 
-      <div class="field-group">
-        <label for="login-pass">Parol / Sessiya tokeni</label>
-        <div class="input-wrap">
-          <input id="login-pass" type="password" placeholder="Parol yoki token" autocomplete="current-password" />
-          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5-1.5 1.5L9 8l-1.5 1.5L6 8 2 12l2 2 4-4 2 2 1.5-1.5 1.5 1.5 2-2 1.5 1.5L21 2z"/><circle cx="17.5" cy="6.5" r="2.5"/>
-          </svg>
-          <button type="button" class="input-action-btn" id="btn-toggle-pass" title="Parolni ko'rsatish">
-            <svg id="pass-eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+        <h1>Kirish</h1>
+        <p class="subtitle">Claude MCP va kompyuter shell boshqaruvi uchun tizimga kiring.</p>
+
+        <div class="field-group">
+          <label for="login-email">Email / Username</label>
+          <div class="input-wrap">
+            <input id="login-email" type="text" placeholder="you@example.com" autocomplete="username" spellcheck="false" />
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
             </svg>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="login-pass">Parol / Sessiya tokeni</label>
+          <div class="input-wrap">
+            <input id="login-pass" type="password" placeholder="Parol yoki token" autocomplete="current-password" />
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5-1.5 1.5L9 8l-1.5 1.5L6 8 2 12l2 2 4-4 2 2 1.5-1.5 1.5 1.5 2-2 1.5 1.5L21 2z"/><circle cx="17.5" cy="6.5" r="2.5"/>
+            </svg>
+            <button type="button" class="input-action-btn" id="btn-toggle-pass" title="Parolni ko'rsatish">
+              <svg id="pass-eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Optional Host Settings -->
+        <div>
+          <button type="button" class="host-toggle-link" id="btn-toggle-host">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24"/></svg>
+            <span>Server manzili sozlamalari</span>
+          </button>
+          <div class="host-settings-panel" id="host-settings-panel">
+            <label for="custom-host">Kompyuter Host (Ngrok / IP)</label>
+            <div class="input-wrap">
+              <input id="custom-host" type="text" placeholder="satisfy-endurance-mooned.ngrok-free.dev" style="padding-left:14px" />
+            </div>
+          </div>
+        </div>
+
+        <div id="login-err" class="err-msg"></div>
+
+        <button id="btn-login" class="primary" type="button">
+          <span>Kirish</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 2: HOME MENU PAGE (#/menu) -->
+  <div id="view-menu" class="view-screen">
+    <div class="center-wrap">
+      <div class="menu-container">
+        <div class="topbar">
+          <div class="topbar-brand">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+            <span>CMC COMPUTER</span>
+            <span class="status-pill" id="menu-status-pill">
+              <span class="status-dot"></span>
+              <span id="menu-status-text">Online</span>
+            </span>
+          </div>
+          <button id="btn-logout" class="ghost" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            <span>Chiqish</span>
           </button>
         </div>
-      </div>
 
-      <!-- Optional Host Settings -->
-      <div>
-        <button type="button" class="host-toggle-link" id="btn-toggle-host">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24"/></svg>
-          <span>Server manzili sozlamalari</span>
-        </button>
-        <div class="host-settings-panel" id="host-settings-panel">
-          <label for="custom-host">Kompyuter Host (Ngrok / IP)</label>
-          <div class="input-wrap">
-            <input id="custom-host" type="text" placeholder="satisfy-endurance-mooned.ngrok-free.dev" style="padding-left:14px" />
-          </div>
+        <div class="dashboard-header">
+          <h1>Boshqaruv Markazi</h1>
+          <p class="subtitle" style="margin-bottom:0">Quyidagi xizmatlardan birini tanlang:</p>
         </div>
-      </div>
 
-      <div id="login-err" class="err-msg"></div>
-
-      <button id="btn-login" class="primary" type="button">
-        <span>Kirish</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- VIEW 2: HOME MENU -->
-  <div id="view-menu" class="view-screen center-wrap">
-    <div class="menu-container">
-      <div class="topbar">
-        <div class="topbar-brand">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
-          <span>CMC COMPUTER</span>
-          <span class="status-pill" id="menu-status-pill">
-            <span class="status-dot"></span>
-            <span id="menu-status-text">Online</span>
-          </span>
-        </div>
-        <button id="btn-logout" class="ghost" type="button">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-          <span>Chiqish</span>
-        </button>
-      </div>
-
-      <div class="dashboard-header">
-        <h1>Boshqaruv Markazi</h1>
-        <p class="subtitle" style="margin-bottom:0">Quyidagi xizmatlardan birini tanlang:</p>
-      </div>
-
-      <div class="menu-grid">
-        <!-- 1: Get MCP -->
-        <div class="action-card" id="card-get-mcp">
-          <div>
-            <div class="icon-box">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M12 16v6M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M2 12h6M16 12h6M4.93 19.07l4.24-4.24M14.83 9.17l4.24-4.24"/></svg>
+        <div class="menu-grid">
+          <!-- 1: Get MCP -->
+          <div class="action-card" id="card-get-mcp">
+            <div>
+              <div class="icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M12 16v6M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M2 12h6M16 12h6M4.93 19.07l4.24-4.24M14.83 9.17l4.24-4.24"/></svg>
+              </div>
+              <div class="action-title">Get MCP</div>
+              <div class="action-desc">Claude AI uchun shaxsiy ulash manzilini (Custom Connector URL) olish va sozlash.</div>
             </div>
-            <div class="action-title">Get MCP</div>
-            <div class="action-desc">Claude AI uchun shaxsiy ulash manzilini (Custom Connector URL) olish va nusxalash.</div>
-          </div>
-          <div class="action-link">
-            <span>MCP URL ko'rish</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </div>
-        </div>
-
-        <!-- 2: Go Shell -->
-        <div class="action-card featured" id="card-go-shell">
-          <div class="card-badge">FULLSCREEN</div>
-          <div>
-            <div class="icon-box">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+            <div class="action-link">
+              <span>MCP URL ko'rish</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </div>
-            <div class="action-title">Go Shell</div>
-            <div class="action-desc">Kompyuteringizdagi bash shell'ni bevosita ochish. Telefon va kompyuterdan to'liq foydalanish imkoni.</div>
           </div>
-          <div class="action-link">
-            <span>Shellga kirish</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+
+          <!-- 2: Go Shell -->
+          <div class="action-card featured" id="card-go-shell">
+            <div class="card-badge">FULLSCREEN</div>
+            <div>
+              <div class="icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+              </div>
+              <div class="action-title">Go Shell</div>
+              <div class="action-desc">Kompyuteringizdagi bash shell'ni bevosita ochish. Telefon va kompyuterdan to'liq foydalanish imkoni.</div>
+            </div>
+            <div class="action-link">
+              <span>Shellga kirish</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- VIEW 3: GET MCP -->
-  <div id="view-mcp" class="view-screen center-wrap">
-    <div class="card" style="width:min(100%, 540px)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div class="badge-wrap" style="margin-bottom:0">
-          <span class="tag">MCP</span>
-          <span>Claude Connector</span>
+  <!-- VIEW 3: GET MCP PAGE (#/mcp) -->
+  <div id="view-mcp" class="view-screen">
+    <div class="center-wrap">
+      <div class="card" style="width:min(100%, 540px)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="badge-wrap" style="margin-bottom:0">
+            <span class="tag">MCP</span>
+            <span>Claude Connector</span>
+          </div>
+          <button id="btn-back-menu" class="ghost" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Orqaga</span>
+          </button>
         </div>
-        <button id="btn-back-menu" class="ghost" type="button">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          <span>Orqaga</span>
+
+        <h1>Claude MCP URL</h1>
+        <p class="subtitle">Claude AI ga quyidagi manzilni Custom Connector sifatida qo'shing:</p>
+
+        <label>Maxsus Connector URL</label>
+        <div class="url-box" id="mcp-url-display">Yuklanmoqda...</div>
+
+        <div id="mcp-copied-msg" style="color:var(--green);font-size:12px;margin-top:6px;min-height:16px;font-family:var(--mono)"></div>
+
+        <button id="btn-copy-mcp" class="secondary" type="button">
+          <svg id="copy-btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span id="copy-btn-text">Nusxa olish</span>
         </button>
-      </div>
 
-      <h1>Claude MCP URL</h1>
-      <p class="subtitle">Claude AI ga quyidagi manzilni Custom Connector sifatida qo'shing:</p>
-
-      <label>Maxsus Connector URL</label>
-      <div class="url-box" id="mcp-url-display">Yuklanmoqda...</div>
-
-      <div id="mcp-copied-msg" style="color:var(--green);font-size:12px;margin-top:6px;min-height:16px;font-family:var(--mono)"></div>
-
-      <button id="btn-copy-mcp" class="secondary" type="button">
-        <svg id="copy-btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-        <span id="copy-btn-text">Nusxa olish</span>
-      </button>
-
-      <div class="info-list">
-        <strong>Ulash tartibi:</strong>
-        <ol>
-          <li>Claude.ai da <code>Settings</code> &rarr; <code>Connectors</code> &rarr; <code>Add custom connector</code> bo'limiga kiring.</li>
-          <li>Nusxa olingan to'liq URL manzilni kiriting.</li>
-          <li>Claude endi kompyuteringizdagi loyihalarni xavfsiz boshqara oladi.</li>
-        </ol>
+        <div class="info-list">
+          <strong>Ulash tartibi:</strong>
+          <ol>
+            <li>Claude.ai da <code>Settings</code> &rarr; <code>Connectors</code> &rarr; <code>Add custom connector</code> bo'limiga kiring.</li>
+            <li>Nusxa olingan to'liq URL manzilni kiriting.</li>
+            <li>Claude endi kompyuteringizdagi loyihalarni xavfsiz boshqara oladi.</li>
+          </ol>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- VIEW 4: GO SHELL FULLSCREEN -->
+  <!-- VIEW 4: GO SHELL FULLSCREEN PAGE (#/shell) -->
   <div id="view-shell">
     <div class="shell-topbar">
       <div class="shell-brand">
@@ -803,10 +834,10 @@
       </div>
     </div>
 
-    <!-- Terminal Canvas -->
+    <!-- Terminal Canvas Wrapper -->
     <div id="terminal-container"></div>
 
-    <!-- Mobile Virtual Keyboard Accessory Bar -->
+    <!-- Mobile Virtual Keyboard Accessory Bar (Termux Style - ONLY on mobile) -->
     <div class="accessory-bar" id="acc-bar">
       <button class="acc-key accent" data-key="ESC">ESC</button>
       <button class="acc-key accent" data-key="TAB">TAB</button>
@@ -822,7 +853,7 @@
       <!-- Quick Shortcuts -->
       <button class="acc-key danger" data-key="CTRL_C">Ctrl+C</button>
       <button class="acc-key danger" data-key="CTRL_D">Ctrl+D</button>
-      <button class="acc-key" data-key="CTRL_Z">Ctrl+Z</button>
+      <button class="acc-key danger" data-key="CTRL_Z">Ctrl+Z</button>
       <button class="acc-key" data-key="CTRL_L">Ctrl+L</button>
       <button class="acc-key" data-key="CTRL_A">Ctrl+A</button>
       <button class="acc-key" data-key="CTRL_E">Ctrl+E</button>
@@ -913,10 +944,57 @@
       }[m]));
     }
 
-    function showView(viewEl) {
-      [viewLogin, viewMenu, viewMcp, viewShell].forEach((el) => el.classList.remove("active"));
-      viewEl.classList.add("active");
+    // --- REAL SPA HASH ROUTING ---
+    function navigateTo(hash) {
+      if (location.hash !== hash) {
+        location.hash = hash;
+      } else {
+        renderRoute();
+      }
     }
+
+    function renderRoute() {
+      const hash = location.hash || "#/login";
+      const hasAuth = Boolean(state.token);
+
+      if (!hasAuth && hash !== "#/login") {
+        location.hash = "#/login";
+        return;
+      }
+
+      [viewLogin, viewMenu, viewMcp, viewShell].forEach((el) => el.classList.remove("active"));
+
+      switch (hash) {
+        case "#/menu":
+          if (ws) { try { ws.close(); } catch {} ws = null; }
+          viewMenu.classList.add("active");
+          break;
+
+        case "#/mcp":
+          if (ws) { try { ws.close(); } catch {} ws = null; }
+          mcpUrlDisplay.textContent = state.mcpUrl || `https://${state.host}/mcp?token=${state.token}`;
+          mcpCopiedMsg.textContent = "";
+          viewMcp.classList.add("active");
+          break;
+
+        case "#/shell":
+          viewShell.classList.add("active");
+          startShell();
+          break;
+
+        case "#/login":
+        default:
+          if (hasAuth) {
+            location.hash = "#/menu";
+            return;
+          }
+          if (ws) { try { ws.close(); } catch {} ws = null; }
+          viewLogin.classList.add("active");
+          break;
+      }
+    }
+
+    window.addEventListener("hashchange", renderRoute);
 
     // Toggle password visibility
     btnTogglePass.addEventListener("click", () => {
@@ -928,11 +1006,6 @@
     btnToggleHost.addEventListener("click", () => {
       hostSettingsPanel.classList.toggle("open");
     });
-
-    // Check existing session
-    if (state.token && (state.mcpUrl || state.host)) {
-      showView(viewMenu);
-    }
 
     function showLoginError(msg) {
       if (!msg) {
@@ -992,7 +1065,6 @@
         state.email = email;
         state.token = data.token || password;
         
-        // Priority for host: user custom input -> server response -> default ngrok host
         let targetHost = customHost || data.host;
         if (!targetHost || targetHost.includes("vercel.app")) {
           targetHost = DEFAULT_NGROK_HOST;
@@ -1006,7 +1078,7 @@
         sessionStorage.setItem("cmc_mcp_url", state.mcpUrl);
 
         passInput.value = "";
-        showView(viewMenu);
+        navigateTo("#/menu");
       } catch (e) {
         showLoginError(e.message || "Server bilan bog'lanishda xatolik yuz berdi");
       } finally {
@@ -1025,20 +1097,16 @@
       state.email = "";
       state.token = "";
       state.mcpUrl = "";
-      showView(viewLogin);
+      navigateTo("#/login");
     });
 
-    // Menu Item 1: Get MCP
-    cardGetMcp.addEventListener("click", () => {
-      mcpUrlDisplay.textContent = state.mcpUrl || `https://${state.host}/mcp?token=${state.token}`;
-      mcpCopiedMsg.textContent = "";
-      showView(viewMcp);
-    });
+    // Navigation buttons
+    cardGetMcp.addEventListener("click", () => navigateTo("#/mcp"));
+    cardGoShell.addEventListener("click", () => navigateTo("#/shell"));
+    btnBackMenu.addEventListener("click", () => navigateTo("#/menu"));
+    btnExitShell.addEventListener("click", () => navigateTo("#/menu"));
 
-    btnBackMenu.addEventListener("click", () => {
-      showView(viewMenu);
-    });
-
+    // Copy MCP URL
     btnCopyMcp.addEventListener("click", async () => {
       const text = mcpUrlDisplay.textContent;
       try {
@@ -1056,16 +1124,7 @@
       }
     });
 
-    // Menu Item 2: Go Shell (Fullscreen)
-    cardGoShell.addEventListener("click", () => {
-      enterShell();
-    });
-
-    btnExitShell.addEventListener("click", () => {
-      exitShell();
-    });
-
-    // Terminal & Shell WebSocket Management
+    // --- ULTRA-FAST BLAZING TERMINAL ENGINE ---
     let term = null;
     let fitAddon = null;
     let ws = null;
@@ -1077,11 +1136,15 @@
 
       const container = document.getElementById("terminal-container");
       term = new Terminal({
-        cursorBlink: true,
+        cursorBlink: false, // Disabling cursor blink drastically reduces CPU draw calls
         cursorStyle: "block",
         fontFamily: "'JetBrains Mono', Menlo, Consolas, monospace",
-        fontSize: window.innerWidth < 640 ? 12 : 14,
-        lineHeight: 1.25,
+        fontSize: window.innerWidth < 768 ? 12 : 14,
+        lineHeight: 1.2,
+        fastScrollModifier: "alt",
+        scrollSensitivity: 2,
+        smoothScrollDuration: 0, // 0 = instant scrolling without animation lag
+        windowsMode: false,
         theme: {
           background: "#080a0f",
           foreground: "#f0f3f6",
@@ -1105,17 +1168,21 @@
           brightWhite: "#ffffff",
         },
         scrollback: 10000,
-        allowTransparency: true,
+        allowTransparency: false, // Solid opaque background delivers maximum WebGL performance
       });
 
       fitAddon = new FitAddon.FitAddon();
       term.loadAddon(fitAddon);
       term.open(container);
 
+      // Fast hardware accelerated WebGL rendering
       try {
-        term.loadAddon(new WebglAddon.WebglAddon());
+        const webgl = new WebglAddon.WebglAddon();
+        webgl.onContextLoss(() => webgl.dispose());
+        term.loadAddon(webgl);
       } catch (e) {}
 
+      // Fast direct keystroke pipeline
       term.onData((data) => {
         let payload = data;
         if (ctrlSticky && payload.length === 1) {
@@ -1146,41 +1213,19 @@
       try {
         fitAddon.fit();
         if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(`\x01${term.cols},${term.rows}`);
+          // Send resize with newline for instant PTY ioctl update
+          ws.send(`\x01${term.cols},${term.rows}\n`);
         }
       } catch (e) {}
     }
 
-    function enterShell() {
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      } else if (document.documentElement.webkitRequestFullscreen) {
-        document.documentElement.webkitRequestFullscreen();
-      }
-
-      showView(viewShell);
+    function startShell() {
       initTerminal();
-
       setTimeout(() => {
         resizeTerminal();
         connectWebSocket();
         term.focus();
-      }, 100);
-    }
-
-    function exitShell() {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      } else if (document.webkitFullscreenElement) {
-        document.webkitExitFullscreen();
-      }
-
-      if (ws) {
-        try { ws.close(); } catch (e) {}
-        ws = null;
-      }
-
-      showView(viewMenu);
+      }, 50);
     }
 
     function connectWebSocket() {
@@ -1234,7 +1279,7 @@
     }
 
     btnShellReconnect.addEventListener("click", () => {
-      if (ws) { try { ws.close(); } catch (e) {} }
+      if (ws) { try { ws.close(); } catch {} }
       connectWebSocket();
     });
 
@@ -1310,6 +1355,9 @@
       }
       if (term) term.focus();
     });
+
+    // Initialize SPA route on load
+    renderRoute();
   </script>
 </body>
 </html>
