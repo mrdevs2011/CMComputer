@@ -131,9 +131,12 @@ export default async (req, res) => {
     }
   }
 
-  const host = process.env.CMC_WS_HOST || req.headers.host;
+  const host =
+    process.env.CMC_WS_HOST ||
+    process.env.NGROK_DOMAIN ||
+    (req.headers.host && !req.headers.host.includes("vercel.app") ? req.headers.host : "satisfy-endurance-mooned.ngrok-free.dev");
   const token = process.env.CMC_TOKEN || process.env.ACCESS_TOKEN || process.env.MCP_TOKEN;
-  const cleanHost = String(host || req.headers.host || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const cleanHost = String(host || "satisfy-endurance-mooned.ngrok-free.dev").replace(/^https?:\/\//, "").replace(/\/$/, "");
   const effectiveToken = token || password;
   const mcpUrl = `https://${cleanHost}/mcp?token=${effectiveToken}`;
 

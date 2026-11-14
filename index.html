@@ -7,152 +7,240 @@
 
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f141c' stroke='%2330ff91' stroke-width='2'/%3E%3Cpath d='M8 11L15 16L8 21M18 21H24' stroke='%2330ff91' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23090a10' stroke='%2330ff91' stroke-width='2'/%3E%3Cpath d='M8 11L15 16L8 21M18 21H24' stroke='%2330ff91' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 
-  <!-- xterm.js styles -->
+  <!-- xterm.js stylesheet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css" />
 
   <style>
     :root {
-      --bg: #0d0e14;
-      --card: #161b22;
-      --surface: #1b212c;
-      --border: #30363d;
-      --border-accent: rgba(63, 185, 80, 0.4);
-      --text: #e6edf3;
-      --muted: #7d8590;
-      --green: #3fb950;
-      --green-glow: rgba(63, 185, 80, 0.15);
+      --bg: #090a10;
+      --card-bg: #11141c;
+      --card-hover: #161a25;
+      --surface: #181d29;
+      --border: #212735;
+      --border-accent: rgba(48, 255, 145, 0.35);
+      --text: #f0f3f6;
+      --text-muted: #7b8494;
+      --green: #30ff91;
+      --green-glow: rgba(48, 255, 145, 0.12);
       --red: #f85149;
-      --blue: #58a6ff;
+      --red-glow: rgba(248, 81, 73, 0.15);
       --cyan: #38bdf8;
-      --amber: #f59e0b;
       --mono: "JetBrains Mono", Menlo, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
-      margin: 0; padding: 0; min-height: 100%;
-      background: var(--bg); color: var(--text);
-      font-family: var(--mono);
+      margin: 0; padding: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
       overflow-x: hidden;
+    }
+
+    code, pre, .mono {
+      font-family: var(--mono);
     }
 
     /* Views */
     .view-screen { display: none; width: 100%; min-height: 100vh; }
     .view-screen.active { display: flex; }
 
-    /* Login & Menu Wrap */
     .center-wrap {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px 16px;
     }
 
+    /* Card */
     .card {
-      width: min(92vw, 440px);
-      background: var(--card);
-      border: 1px solid var(--border-accent);
+      width: min(100%, 430px);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 28px 24px;
-      box-shadow: 0 8px 32px var(--green-glow);
+      padding: 30px 26px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+      position: relative;
     }
 
-    .card-title {
-      font-size: 13px;
+    .badge-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.08em;
-      color: var(--muted);
-      margin-bottom: 6px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      font-family: var(--mono);
     }
-    .card-title span { color: var(--green); }
+
+    .badge-wrap .tag {
+      color: var(--green);
+      background: var(--green-glow);
+      border: 1px solid var(--border-accent);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
 
     h1 {
       margin: 0 0 8px;
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 700;
       color: var(--text);
+      letter-spacing: -0.02em;
     }
 
     .subtitle {
-      margin: 0 0 20px;
+      margin: 0 0 22px;
       font-size: 13px;
-      color: var(--muted);
+      color: var(--text-muted);
       line-height: 1.5;
     }
 
-    label {
-      display: block;
-      font-size: 12px;
-      color: var(--muted);
-      margin: 14px 0 6px;
+    /* Form Fields */
+    .field-group {
+      margin-bottom: 16px;
     }
-    label:first-of-type { margin-top: 0; }
+
+    label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+      font-family: var(--mono);
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrap svg.input-icon {
+      position: absolute;
+      left: 14px;
+      width: 16px;
+      height: 16px;
+      stroke: var(--text-muted);
+      pointer-events: none;
+      transition: stroke 0.15s;
+    }
 
     input {
       width: 100%;
       box-sizing: border-box;
       font: 14px var(--mono);
       color: var(--text);
-      background: #090b10;
+      background: #0b0d13;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 12px 14px 12px 40px;
       outline: none;
-      transition: border-color 0.15s;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    input:focus { border-color: var(--green); }
 
+    input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 1px var(--green);
+    }
+
+    input:focus + svg.input-icon {
+      stroke: var(--green);
+    }
+
+    .input-action-btn {
+      position: absolute;
+      right: 10px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .input-action-btn:hover { color: var(--text); }
+
+    /* Buttons */
     button {
-      font: 14px var(--mono);
+      font-family: var(--sans);
+      font-size: 14px;
       font-weight: 600;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.15s;
       outline: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
+
     button.primary {
       width: 100%;
-      margin-top: 16px;
-      color: #0d0e14;
+      margin-top: 10px;
+      color: #080a0f;
       background: var(--green);
       border: none;
-      padding: 12px 18px;
+      padding: 13px 18px;
     }
-    button.primary:hover:not(:disabled) { background: #52e067; }
-    button.primary:disabled { opacity: 0.5; cursor: default; }
+    button.primary:hover:not(:disabled) {
+      background: #46ff9f;
+      box-shadow: 0 0 16px var(--green-glow);
+    }
+    button.primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
     button.secondary {
       width: 100%;
-      background: transparent;
-      color: var(--green);
-      border: 1px solid var(--border-accent);
+      background: #141923;
+      color: var(--text);
+      border: 1px solid var(--border);
       padding: 11px 16px;
       margin-top: 10px;
     }
-    button.secondary:hover:not(:disabled) { background: var(--green-glow); }
+    button.secondary:hover:not(:disabled) {
+      background: var(--surface);
+      border-color: var(--text-muted);
+    }
 
     button.ghost {
       background: transparent;
-      color: var(--muted);
+      color: var(--text-muted);
       border: 1px solid var(--border);
-      padding: 7px 12px;
+      padding: 6px 12px;
       font-size: 12px;
     }
-    button.ghost:hover { color: var(--text); border-color: var(--muted); }
+    button.ghost:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+    }
 
+    /* Error Alert */
     .err-msg {
       display: none;
       margin-top: 14px;
-      margin-bottom: 4px;
-      padding: 10px 14px;
+      padding: 11px 14px;
       border-radius: 8px;
-      background: rgba(248, 81, 73, 0.12);
-      border: 1px solid rgba(248, 81, 73, 0.35);
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid rgba(248, 81, 73, 0.3);
       color: #ff7b72;
       font-size: 13px;
       font-weight: 500;
@@ -162,8 +250,9 @@
     .err-msg.visible {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 9px;
     }
+
     @keyframes shake {
       10%, 90% { transform: translate3d(-1px, 0, 0); }
       20%, 80% { transform: translate3d(2px, 0, 0); }
@@ -171,78 +260,127 @@
       40%, 60% { transform: translate3d(3px, 0, 0); }
     }
 
-    /* Home Menu Cards */
+    /* Host Settings Drawer/Toggle */
+    .host-toggle-link {
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 14px;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: var(--mono);
+    }
+    .host-toggle-link:hover { color: var(--green); }
+
+    .host-settings-panel {
+      display: none;
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: #0b0d13;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+    }
+    .host-settings-panel.open { display: block; }
+
+    /* DASHBOARD / HOME MENU */
     .menu-container {
-      width: min(92vw, 560px);
+      width: min(100%, 640px);
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      margin: 0 auto;
+      gap: 20px;
     }
 
-    .menu-topbar {
+    .topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
     }
 
-    .menu-brand {
+    .topbar-brand {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 15px;
-      font-weight: 700;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--mono);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--green);
+      background: var(--green-glow);
+      border: 1px solid var(--border-accent);
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-family: var(--mono);
+    }
+    .status-pill.offline {
+      color: var(--red);
+      background: var(--red-glow);
+      border-color: rgba(248, 81, 73, 0.35);
     }
 
     .status-dot {
-      display: inline-block;
-      width: 8px; height: 8px;
+      width: 6px; height: 6px;
       border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 6px var(--green);
+      background: currentColor;
     }
-    .status-dot.off { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+    .dashboard-header {
+      margin-bottom: 4px;
+    }
 
     .menu-grid {
       display: grid;
       grid-template-columns: 1fr;
       gap: 16px;
     }
-
-    @media (min-width: 600px) {
+    @media (min-width: 640px) {
       .menu-grid { grid-template-columns: 1fr 1fr; }
     }
 
     .action-card {
-      background: var(--card);
+      background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 22px 20px;
+      padding: 24px 22px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
       cursor: pointer;
       position: relative;
-      overflow: hidden;
     }
     .action-card:hover {
-      border-color: var(--green);
+      background: var(--card-hover);
+      border-color: var(--text-muted);
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px var(--green-glow);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
     }
 
     .action-card.featured {
       border-color: var(--border-accent);
-      background: linear-gradient(180deg, rgba(63,185,80,0.06) 0%, rgba(22,27,34,1) 100%);
+      background: linear-gradient(180deg, rgba(48, 255, 145, 0.04) 0%, rgba(17, 20, 28, 1) 100%);
+    }
+    .action-card.featured:hover {
+      border-color: var(--green);
+      box-shadow: 0 12px 28px var(--green-glow);
     }
 
     .card-badge {
       position: absolute;
-      top: 14px; right: 14px;
+      top: 18px; right: 18px;
       background: var(--green-glow);
       color: var(--green);
       border: 1px solid var(--border-accent);
@@ -250,66 +388,90 @@
       font-weight: 700;
       padding: 2px 8px;
       border-radius: 20px;
+      font-family: var(--mono);
     }
 
-    .action-icon {
-      font-size: 26px;
-      margin-bottom: 14px;
-      display: inline-block;
+    .icon-box {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      background: #181d29;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      color: var(--cyan);
+    }
+    .action-card.featured .icon-box {
+      color: var(--green);
+      background: rgba(48, 255, 145, 0.08);
+      border-color: var(--border-accent);
     }
 
     .action-title {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
       color: var(--text);
       margin-bottom: 6px;
     }
 
     .action-desc {
-      font-size: 12px;
-      color: var(--muted);
+      font-size: 13px;
+      color: var(--text-muted);
       line-height: 1.5;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
       flex-grow: 1;
     }
 
-    .action-btn-text {
+    .action-link {
       font-size: 13px;
       font-weight: 600;
-      color: var(--green);
-      display: flex;
+      color: var(--text);
+      display: inline-flex;
       align-items: center;
       gap: 6px;
+      font-family: var(--mono);
+    }
+    .action-card.featured .action-link {
+      color: var(--green);
     }
 
-    /* Get MCP Screen */
+    /* MCP Screen */
     .url-box {
       margin-top: 10px;
       padding: 14px;
-      background: #080a0f;
+      background: #0b0d13;
       border: 1px solid var(--border);
       border-radius: 8px;
       word-break: break-all;
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1.5;
       color: var(--green);
       user-select: all;
+      font-family: var(--mono);
     }
 
-    .hint-box {
-      margin-top: 16px;
+    .info-list {
+      margin-top: 18px;
+      padding: 14px;
+      background: #0b0d13;
+      border-radius: 8px;
+      border: 1px solid var(--border);
       font-size: 12px;
-      color: var(--muted);
+      color: var(--text-muted);
       line-height: 1.6;
     }
-    .hint-box code {
-      background: #080a0f;
+    .info-list ol { margin: 6px 0 0; padding-left: 18px; }
+    .info-list li { margin-bottom: 4px; }
+    .info-list code {
+      background: #181d29;
       color: var(--cyan);
       padding: 2px 6px;
       border-radius: 4px;
+      font-size: 11px;
     }
 
-    /* FULLSCREEN SHELL VIEW */
+    /* FULLSCREEN SHELL */
     #view-shell {
       position: fixed;
       inset: 0;
@@ -322,19 +484,16 @@
       flex-direction: column;
       overflow: hidden;
     }
-    #view-shell.active {
-      display: flex;
-    }
+    #view-shell.active { display: flex; }
 
-    /* Top Shell Toolbar */
     .shell-topbar {
-      height: 40px;
-      background: #11141c;
-      border-bottom: 1px solid #232833;
+      height: 42px;
+      background: #0f121a;
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 10px;
+      padding: 0 12px;
       flex-shrink: 0;
       user-select: none;
     }
@@ -342,9 +501,10 @@
     .shell-brand {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       font-size: 12px;
       font-weight: 600;
+      font-family: var(--mono);
     }
 
     .shell-actions {
@@ -354,18 +514,24 @@
     }
 
     .shell-btn {
-      background: #191e28;
-      color: var(--muted);
-      border: 1px solid #2a3140;
+      background: #161b26;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 4px 10px;
-      font-size: 11px;
+      padding: 5px 9px;
+      font-size: 12px;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
     }
-    .shell-btn:hover { color: var(--text); border-color: var(--green); }
-    .shell-btn.active { background: var(--green); color: #0d0e14; border-color: var(--green); }
+    .shell-btn:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+      background: #1c2230;
+    }
 
-    /* Terminal Container */
     #terminal-container {
       flex: 1;
       width: 100%;
@@ -380,10 +546,10 @@
       height: 100%;
     }
 
-    /* Virtual Keyboard Accessory Bar (Termux / Blink Style) */
+    /* Mobile Keyboard Accessory Bar */
     .accessory-bar {
-      background: #11141c;
-      border-top: 1px solid #232833;
+      background: #0f121a;
+      border-top: 1px solid var(--border);
       padding: 6px 8px;
       display: flex;
       align-items: center;
@@ -405,9 +571,9 @@
       height: 36px;
       min-width: 38px;
       padding: 0 10px;
-      background: #1c2230;
+      background: #171c28;
       color: var(--text);
-      border: 1px solid #2d3647;
+      border: 1px solid #252d3d;
       border-radius: 6px;
       font-family: var(--mono);
       font-size: 12px;
@@ -418,12 +584,12 @@
       transition: background 0.1s, transform 0.05s;
     }
     .acc-key:active {
-      background: #2a3449;
+      background: #232a3d;
       transform: scale(0.95);
     }
 
     .acc-key.modifier {
-      background: #1a2333;
+      background: #141c2b;
       color: var(--cyan);
       border-color: rgba(56, 189, 248, 0.3);
     }
@@ -431,12 +597,12 @@
       background: var(--green);
       color: #080a0f;
       border-color: var(--green);
-      box-shadow: 0 0 10px rgba(63, 185, 80, 0.5);
+      box-shadow: 0 0 10px rgba(48, 255, 145, 0.4);
     }
 
     .acc-key.accent {
       color: var(--green);
-      border-color: rgba(63, 185, 80, 0.35);
+      border-color: var(--border-accent);
     }
 
     .acc-key.danger {
@@ -445,7 +611,7 @@
     }
 
     .acc-key.sym {
-      color: var(--muted);
+      color: var(--text-muted);
       font-weight: 500;
     }
   </style>
@@ -455,56 +621,115 @@
   <!-- VIEW 1: LOGIN -->
   <div id="view-login" class="view-screen active center-wrap">
     <div class="card">
-      <div class="card-title">[ <span>CMC</span> ] · COMPUTER GATEWAY</div>
+      <div class="badge-wrap">
+        <span class="tag">CMC</span>
+        <span>Computer Gateway</span>
+      </div>
+
       <h1>Kirish</h1>
       <p class="subtitle">Claude MCP va kompyuter shell boshqaruvi uchun tizimga kiring.</p>
 
-      <label for="login-email">Email / Username</label>
-      <input id="login-email" type="email" placeholder="you@example.com" autocomplete="username" />
+      <div class="field-group">
+        <label for="login-email">Email / Username</label>
+        <div class="input-wrap">
+          <input id="login-email" type="text" placeholder="you@example.com" autocomplete="username" spellcheck="false" />
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+          </svg>
+        </div>
+      </div>
 
-      <label for="login-pass">Parol / Sessiya tokeni</label>
-      <input id="login-pass" type="password" placeholder="Parol yoki token" autocomplete="current-password" />
+      <div class="field-group">
+        <label for="login-pass">Parol / Sessiya tokeni</label>
+        <div class="input-wrap">
+          <input id="login-pass" type="password" placeholder="Parol yoki token" autocomplete="current-password" />
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5-1.5 1.5L9 8l-1.5 1.5L6 8 2 12l2 2 4-4 2 2 1.5-1.5 1.5 1.5 2-2 1.5 1.5L21 2z"/><circle cx="17.5" cy="6.5" r="2.5"/>
+          </svg>
+          <button type="button" class="input-action-btn" id="btn-toggle-pass" title="Parolni ko'rsatish">
+            <svg id="pass-eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Optional Host Settings -->
+      <div>
+        <button type="button" class="host-toggle-link" id="btn-toggle-host">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24"/></svg>
+          <span>Server manzili sozlamalari</span>
+        </button>
+        <div class="host-settings-panel" id="host-settings-panel">
+          <label for="custom-host">Kompyuter Host (Ngrok / IP)</label>
+          <div class="input-wrap">
+            <input id="custom-host" type="text" placeholder="satisfy-endurance-mooned.ngrok-free.dev" style="padding-left:14px" />
+          </div>
+        </div>
+      </div>
 
       <div id="login-err" class="err-msg"></div>
 
-      <button id="btn-login" class="primary" type="button">Kirish →</button>
+      <button id="btn-login" class="primary" type="button">
+        <span>Kirish</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
     </div>
   </div>
 
   <!-- VIEW 2: HOME MENU -->
   <div id="view-menu" class="view-screen center-wrap">
     <div class="menu-container">
-      <div class="menu-topbar">
-        <div class="menu-brand">
-          <span class="status-dot"></span>
+      <div class="topbar">
+        <div class="topbar-brand">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
           <span>CMC COMPUTER</span>
+          <span class="status-pill" id="menu-status-pill">
+            <span class="status-dot"></span>
+            <span id="menu-status-text">Online</span>
+          </span>
         </div>
-        <button id="btn-logout" class="ghost" type="button">Chiqish</button>
+        <button id="btn-logout" class="ghost" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+          <span>Chiqish</span>
+        </button>
       </div>
 
-      <h1 style="font-size:24px;margin-bottom:4px">Boshqaruv Markazi</h1>
-      <p class="subtitle" style="margin-bottom:16px">Quyidagi amallardan birini tanlang:</p>
+      <div class="dashboard-header">
+        <h1>Boshqaruv Markazi</h1>
+        <p class="subtitle" style="margin-bottom:0">Quyidagi xizmatlardan birini tanlang:</p>
+      </div>
 
       <div class="menu-grid">
         <!-- 1: Get MCP -->
         <div class="action-card" id="card-get-mcp">
           <div>
-            <div class="action-icon">⚡</div>
+            <div class="icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M12 16v6M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M2 12h6M16 12h6M4.93 19.07l4.24-4.24M14.83 9.17l4.24-4.24"/></svg>
+            </div>
             <div class="action-title">Get MCP</div>
-            <div class="action-desc">Claude AI uchun maxsus MCP ulash manzilini olish, nusxalash va sozlash.</div>
+            <div class="action-desc">Claude AI uchun shaxsiy ulash manzilini (Custom Connector URL) olish va nusxalash.</div>
           </div>
-          <div class="action-btn-text">MCP URL olish →</div>
+          <div class="action-link">
+            <span>MCP URL ko'rish</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
         </div>
 
         <!-- 2: Go Shell -->
         <div class="action-card featured" id="card-go-shell">
-          <div class="card-badge">YANGI</div>
+          <div class="card-badge">FULLSCREEN</div>
           <div>
-            <div class="action-icon">💻</div>
+            <div class="icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
+            </div>
             <div class="action-title">Go Shell</div>
-            <div class="action-desc">Kompyuteringizdagi bash shell'ni bevosita ochish. Telefon va kompyuterdan to'liq foydalanish imkoniyati.</div>
+            <div class="action-desc">Kompyuteringizdagi bash shell'ni bevosita ochish. Telefon va kompyuterdan to'liq foydalanish imkoni.</div>
           </div>
-          <div class="action-btn-text" style="color:var(--green)">Shellga kirish (Fullscreen) →</div>
+          <div class="action-link">
+            <span>Shellga kirish</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
         </div>
       </div>
     </div>
@@ -512,10 +737,16 @@
 
   <!-- VIEW 3: GET MCP -->
   <div id="view-mcp" class="view-screen center-wrap">
-    <div class="card" style="width:min(92vw, 540px)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="card-title">[ <span>MCP</span> ] · CLAUDE CONNECTOR</div>
-        <button id="btn-back-menu" class="ghost" type="button">← Orqaga</button>
+    <div class="card" style="width:min(100%, 540px)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="badge-wrap" style="margin-bottom:0">
+          <span class="tag">MCP</span>
+          <span>Claude Connector</span>
+        </div>
+        <button id="btn-back-menu" class="ghost" type="button">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span>Orqaga</span>
+        </button>
       </div>
 
       <h1>Claude MCP URL</h1>
@@ -524,14 +755,20 @@
       <label>Maxsus Connector URL</label>
       <div class="url-box" id="mcp-url-display">Yuklanmoqda...</div>
 
-      <div id="mcp-copied-msg" style="color:var(--green);font-size:12px;margin-top:6px;min-height:16px"></div>
-      <button id="btn-copy-mcp" class="secondary" type="button">📋 Nusxa olish</button>
+      <div id="mcp-copied-msg" style="color:var(--green);font-size:12px;margin-top:6px;min-height:16px;font-family:var(--mono)"></div>
 
-      <div class="hint-box">
-        <strong>Ulash bo'yicha ko'rsatma:</strong><br />
-        1. Claude.ai da <code>Settings</code> → <code>Connectors</code> → <code>Add custom connector</code><br />
-        2. Yuqoridagi to'liq URL manzilni kiriting<br />
-        3. Claude kompyuteringizda <code>run_command</code> orqali buyruqlarni xavfsiz boshqaradi.
+      <button id="btn-copy-mcp" class="secondary" type="button">
+        <svg id="copy-btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        <span id="copy-btn-text">Nusxa olish</span>
+      </button>
+
+      <div class="info-list">
+        <strong>Ulash tartibi:</strong>
+        <ol>
+          <li>Claude.ai da <code>Settings</code> &rarr; <code>Connectors</code> &rarr; <code>Add custom connector</code> bo'limiga kiring.</li>
+          <li>Nusxa olingan to'liq URL manzilni kiriting.</li>
+          <li>Claude endi kompyuteringizdagi loyihalarni xavfsiz boshqara oladi.</li>
+        </ol>
       </div>
     </div>
   </div>
@@ -540,21 +777,30 @@
   <div id="view-shell">
     <div class="shell-topbar">
       <div class="shell-brand">
-        <span class="status-dot" id="shell-status-dot"></span>
+        <span class="status-dot" id="shell-status-dot" style="background:var(--green)"></span>
         <span id="shell-status-text">CMC Shell</span>
-        <span style="color:#555;font-size:11px">|</span>
+        <span style="color:#333">|</span>
         <span id="shell-host-label" style="color:var(--cyan);font-size:11px">bash</span>
       </div>
 
       <div class="shell-actions">
-        <button id="btn-fullscreen-toggle" class="shell-btn" title="Fullscreen">⛶</button>
-        <button id="btn-shell-reconnect" class="shell-btn" title="Qayta ulanish">↻</button>
-        <button id="btn-shell-clear" class="shell-btn" title="Tozalash">Clear</button>
-        <button id="btn-exit-shell" class="shell-btn" style="color:var(--red);border-color:rgba(248,81,73,0.3)" title="Chiqish">← Menu</button>
+        <button id="btn-fullscreen-toggle" class="shell-btn" title="Fullscreen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+        <button id="btn-shell-reconnect" class="shell-btn" title="Qayta ulanish">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        </button>
+        <button id="btn-shell-clear" class="shell-btn" title="Tozalash">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+        <button id="btn-exit-shell" class="shell-btn" style="color:var(--red);border-color:rgba(248,81,73,0.3)" title="Chiqish">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span>Menu</span>
+        </button>
       </div>
     </div>
 
-    <!-- Terminal Canvas Wrapper -->
+    <!-- Terminal Canvas -->
     <div id="terminal-container"></div>
 
     <!-- Mobile Virtual Keyboard Accessory Bar -->
@@ -565,14 +811,14 @@
       <button class="acc-key modifier" id="acc-alt" data-mod="ALT">ALT</button>
       
       <!-- Arrows -->
-      <button class="acc-key" data-key="UP" title="Up Arrow">↑</button>
-      <button class="acc-key" data-key="DOWN" title="Down Arrow">↓</button>
-      <button class="acc-key" data-key="LEFT" title="Left Arrow">←</button>
-      <button class="acc-key" data-key="RIGHT" title="Right Arrow">→</button>
+      <button class="acc-key" data-key="UP" title="Up Arrow">&uarr;</button>
+      <button class="acc-key" data-key="DOWN" title="Down Arrow">&darr;</button>
+      <button class="acc-key" data-key="LEFT" title="Left Arrow">&larr;</button>
+      <button class="acc-key" data-key="RIGHT" title="Right Arrow">&rarr;</button>
 
       <!-- Quick Shortcuts -->
       <button class="acc-key danger" data-key="CTRL_C">Ctrl+C</button>
-      <button class="acc-key" data-key="CTRL_D">Ctrl+D</button>
+      <button class="acc-key danger" data-key="CTRL_D">Ctrl+D</button>
       <button class="acc-key" data-key="CTRL_Z">Ctrl+Z</button>
       <button class="acc-key" data-key="CTRL_L">Ctrl+L</button>
       <button class="acc-key" data-key="CTRL_A">Ctrl+A</button>
@@ -584,7 +830,7 @@
       <button class="acc-key" data-key="PGUP">PGUP</button>
       <button class="acc-key" data-key="PGDN">PGDN</button>
 
-      <!-- Handy Shell Characters -->
+      <!-- Shell Symbols -->
       <button class="acc-key sym" data-key="|">|</button>
       <button class="acc-key sym" data-key="~">~</button>
       <button class="acc-key sym" data-key="/">/</button>
@@ -593,7 +839,7 @@
       <button class="acc-key sym" data-key="\\">\</button>
       <button class="acc-key sym" data-key="`">`</button>
       <button class="acc-key sym" data-key="$">$</button>
-      <button class="acc-key sym" data-key="&">&</button>
+      <button class="acc-key sym" data-key="&">&amp;</button>
       <button class="acc-key sym" data-key=";">;</button>
       <button class="acc-key sym" data-key=">">&gt;</button>
       <button class="acc-key sym" data-key="<">&lt;</button>
@@ -608,11 +854,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-webgl@0.18.0/lib/addon-webgl.min.js"></script>
 
   <script>
-    // State
+    const DEFAULT_NGROK_HOST = "satisfy-endurance-mooned.ngrok-free.dev";
+
+    // Application State
     const state = {
       email: sessionStorage.getItem("cmc_email") || "",
       token: sessionStorage.getItem("cmc_token") || "",
-      host: sessionStorage.getItem("cmc_host") || location.host,
+      host: sessionStorage.getItem("cmc_host") || DEFAULT_NGROK_HOST,
       mcpUrl: sessionStorage.getItem("cmc_mcp_url") || "",
     };
 
@@ -624,15 +872,23 @@
 
     const emailInput = document.getElementById("login-email");
     const passInput = document.getElementById("login-pass");
+    const customHostInput = document.getElementById("custom-host");
     const btnLogin = document.getElementById("btn-login");
     const loginErr = document.getElementById("login-err");
+    const btnTogglePass = document.getElementById("btn-toggle-pass");
+    const btnToggleHost = document.getElementById("btn-toggle-host");
+    const hostSettingsPanel = document.getElementById("host-settings-panel");
 
     const btnLogout = document.getElementById("btn-logout");
     const cardGetMcp = document.getElementById("card-get-mcp");
     const cardGoShell = document.getElementById("card-go-shell");
+    const menuStatusPill = document.getElementById("menu-status-pill");
+    const menuStatusText = document.getElementById("menu-status-text");
 
     const mcpUrlDisplay = document.getElementById("mcp-url-display");
     const btnCopyMcp = document.getElementById("btn-copy-mcp");
+    const copyBtnText = document.getElementById("copy-btn-text");
+    const copyBtnIcon = document.getElementById("copy-btn-icon");
     const mcpCopiedMsg = document.getElementById("mcp-copied-msg");
     const btnBackMenu = document.getElementById("btn-back-menu");
 
@@ -646,24 +902,38 @@
     const accCtrlBtn = document.getElementById("acc-ctrl");
     const accAltBtn = document.getElementById("acc-alt");
 
-    // Switch view helper
+    customHostInput.value = state.host;
+
+    function escapeHtml(str) {
+      return String(str || "").replace(/[&<>"']/g, (m) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      }[m]));
+    }
+
     function showView(viewEl) {
-      [viewLogin, viewMenu, viewMcp, viewShell].forEach(el => el.classList.remove("active"));
+      [viewLogin, viewMenu, viewMcp, viewShell].forEach((el) => el.classList.remove("active"));
       viewEl.classList.add("active");
     }
 
-    // Auto-login if session exists
-    if (state.token && state.mcpUrl) {
+    // Toggle password visibility
+    btnTogglePass.addEventListener("click", () => {
+      const isPass = passInput.type === "password";
+      passInput.type = isPass ? "text" : "password";
+    });
+
+    // Toggle custom host settings
+    btnToggleHost.addEventListener("click", () => {
+      hostSettingsPanel.classList.toggle("open");
+    });
+
+    // Check existing session
+    if (state.token && (state.mcpUrl || state.host)) {
       showView(viewMenu);
     }
 
     function showLoginError(msg) {
       loginErr.className = "err-msg visible";
       loginErr.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${escapeHtml(msg)}</span>`;
-      try {
-        passInput.focus();
-        passInput.select();
-      } catch {}
     }
 
     function clearLoginError() {
@@ -679,6 +949,7 @@
       clearLoginError();
       const email = emailInput.value.trim();
       const password = passInput.value;
+      const customHost = customHostInput.value.trim();
 
       if (!email || !password) {
         showLoginError("Email va parol kiritilishi shart.");
@@ -686,10 +957,9 @@
       }
 
       btnLogin.disabled = true;
-      btnLogin.textContent = "Tekshirilmoqda...";
+      btnLogin.innerHTML = `<span>Tekshirilmoqda...</span>`;
 
       try {
-        // Try /api/login first, then /api/mcp-url
         let res = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -708,14 +978,20 @@
         if (!res.ok) {
           showLoginError(data.error || ("Kirishda xatolik yuz berdi (HTTP " + res.status + ")"));
           btnLogin.disabled = false;
-          btnLogin.textContent = "Kirish →";
+          btnLogin.innerHTML = `<span>Kirish</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
           return;
         }
 
         state.email = email;
         state.token = data.token || password;
-        state.host = data.host || location.host;
-        state.mcpUrl = data.mcpUrl || data.url || `https://${state.host}/mcp?token=${state.token}`;
+        
+        // Priority for host: user custom input -> server response -> default ngrok host
+        let targetHost = customHost || data.host;
+        if (!targetHost || targetHost.includes("vercel.app")) {
+          targetHost = DEFAULT_NGROK_HOST;
+        }
+        state.host = targetHost.replace(/^https?:\/\//, "").replace(/\/$/, "");
+        state.mcpUrl = data.mcpUrl || `https://${state.host}/mcp?token=${state.token}`;
 
         sessionStorage.setItem("cmc_email", state.email);
         sessionStorage.setItem("cmc_token", state.token);
@@ -728,7 +1004,7 @@
         showLoginError(e.message || "Server bilan bog'lanishda xatolik yuz berdi");
       } finally {
         btnLogin.disabled = false;
-        btnLogin.textContent = "Kirish →";
+        btnLogin.innerHTML = `<span>Kirish</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
       }
     }
 
@@ -747,7 +1023,7 @@
 
     // Menu Item 1: Get MCP
     cardGetMcp.addEventListener("click", () => {
-      mcpUrlDisplay.textContent = state.mcpUrl || "URL mavjud emas";
+      mcpUrlDisplay.textContent = state.mcpUrl || `https://${state.host}/mcp?token=${state.token}`;
       mcpCopiedMsg.textContent = "";
       showView(viewMcp);
     });
@@ -760,19 +1036,20 @@
       const text = mcpUrlDisplay.textContent;
       try {
         await navigator.clipboard.writeText(text);
-        mcpCopiedMsg.textContent = "✓ Nusxa olindi!";
+        copyBtnText.textContent = "Nusxa olindi";
+        copyBtnIcon.innerHTML = `<polyline points="20 6 9 17 4 12"/>`;
+        mcpCopiedMsg.textContent = "✓ Muvaffaqiyatli nusxalandi!";
+        setTimeout(() => {
+          copyBtnText.textContent = "Nusxa olish";
+          copyBtnIcon.innerHTML = `<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>`;
+          mcpCopiedMsg.textContent = "";
+        }, 2500);
       } catch {
-        const r = document.createRange();
-        r.selectNodeContents(mcpUrlDisplay);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(r);
-        mcpCopiedMsg.textContent = "URL ni Ctrl+C bilan nusxalang";
+        mcpCopiedMsg.textContent = "Qo'lda belgilab nusxa oling.";
       }
-      setTimeout(() => { mcpCopiedMsg.textContent = ""; }, 3000);
     });
 
-    // Menu Item 2: Go Shell (Fullscreen Terminal)
+    // Menu Item 2: Go Shell (Fullscreen)
     cardGoShell.addEventListener("click", () => {
       enterShell();
     });
@@ -796,29 +1073,29 @@
         cursorBlink: true,
         cursorStyle: "block",
         fontFamily: "'JetBrains Mono', Menlo, Consolas, monospace",
-        fontSize: window.innerWidth < 600 ? 12 : 14,
+        fontSize: window.innerWidth < 640 ? 12 : 14,
         lineHeight: 1.25,
         theme: {
           background: "#080a0f",
-          foreground: "#e6edf3",
-          cursor: "#3fb950",
-          selectionBackground: "rgba(63, 185, 80, 0.3)",
+          foreground: "#f0f3f6",
+          cursor: "#30ff91",
+          selectionBackground: "rgba(48, 255, 145, 0.25)",
           black: "#0d0e14",
           red: "#f85149",
-          green: "#3fb950",
-          yellow: "#d29922",
+          green: "#30ff91",
+          yellow: "#e3b341",
           blue: "#58a6ff",
           magenta: "#bc8cff",
-          cyan: "#39c5cf",
+          cyan: "#38bdf8",
           white: "#b1bac4",
           brightBlack: "#484f58",
           brightRed: "#ff7b72",
           brightGreen: "#56d364",
-          brightYellow: "#e3b341",
+          brightYellow: "#f59e0b",
           brightBlue: "#79c0ff",
           brightMagenta: "#d2a8ff",
           brightCyan: "#56d4dd",
-          brightWhite: "#f0f6fc",
+          brightWhite: "#ffffff",
         },
         scrollback: 10000,
         allowTransparency: true,
@@ -830,15 +1107,10 @@
 
       try {
         term.loadAddon(new WebglAddon.WebglAddon());
-      } catch (e) {
-        // Fallback to DOM/canvas
-      }
+      } catch (e) {}
 
-      // Handle user key inputs in terminal
       term.onData((data) => {
         let payload = data;
-
-        // Apply sticky modifier keys if toggled
         if (ctrlSticky && payload.length === 1) {
           const code = payload.toUpperCase().charCodeAt(0);
           if (code >= 64 && code <= 95) {
@@ -846,12 +1118,10 @@
           }
           toggleCtrl(false);
         }
-
         if (altSticky && payload.length >= 1) {
           payload = "\x1b" + payload;
           toggleAlt(false);
         }
-
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(payload);
         }
@@ -875,18 +1145,15 @@
     }
 
     function enterShell() {
-      // 1. Request fullscreen on user gesture
       if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {});
       } else if (document.documentElement.webkitRequestFullscreen) {
         document.documentElement.webkitRequestFullscreen();
       }
 
-      // 2. Show shell view
       showView(viewShell);
       initTerminal();
 
-      // Small delay to ensure view is rendered before fit calculation
       setTimeout(() => {
         resizeTerminal();
         connectWebSocket();
@@ -895,14 +1162,12 @@
     }
 
     function exitShell() {
-      // Exit fullscreen if active
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       } else if (document.webkitFullscreenElement) {
         document.webkitExitFullscreen();
       }
 
-      // Disconnect WebSocket
       if (ws) {
         try { ws.close(); } catch (e) {}
         ws = null;
@@ -916,20 +1181,24 @@
         return;
       }
 
-      setShellStatus("ulanmoqda...", false);
+      setShellStatus("Ulanmoqda...", false);
       const isHttps = location.protocol === "https:";
       const wsProto = isHttps ? "wss:" : "ws:";
-      const targetHost = state.host || location.host;
-      const wsUrl = `${wsProto}//${targetHost}/ws?token=${encodeURIComponent(state.token)}&cols=${term.cols || 80}&rows=${term.rows || 24}`;
-
+      
+      let targetHost = state.host || DEFAULT_NGROK_HOST;
+      if (targetHost.includes("vercel.app")) {
+        targetHost = DEFAULT_NGROK_HOST;
+      }
       shellHostLabel.textContent = targetHost;
+
+      const wsUrl = `${wsProto}//${targetHost}/ws?token=${encodeURIComponent(state.token)}&cols=${term.cols || 80}&rows=${term.rows || 24}`;
 
       try {
         ws = new WebSocket(wsUrl);
         ws.binaryType = "arraybuffer";
 
         ws.onopen = () => {
-          setShellStatus("ulandi", true);
+          setShellStatus("Ulangan", true);
           resizeTerminal();
           term.focus();
         };
@@ -940,20 +1209,21 @@
         };
 
         ws.onclose = (ev) => {
-          setShellStatus(ev.code === 1000 ? "yopildi" : "uzildi", false);
+          setShellStatus(ev.code === 1000 ? "Yopildi" : "Uzildi", false);
         };
 
         ws.onerror = () => {
-          setShellStatus("xatolik", false);
+          setShellStatus("Xatolik", false);
         };
       } catch (e) {
-        setShellStatus("xatolik", false);
+        setShellStatus("Xatolik", false);
       }
     }
 
     function setShellStatus(text, isOk) {
       shellStatusText.textContent = text;
-      shellStatusDot.className = "status-dot " + (isOk ? "" : "off");
+      shellStatusDot.style.background = isOk ? "var(--green)" : "var(--red)";
+      shellStatusDot.style.boxShadow = isOk ? "0 0 8px var(--green)" : "none";
     }
 
     btnShellReconnect.addEventListener("click", () => {
@@ -983,7 +1253,7 @@
       setTimeout(resizeTerminal, 150);
     });
 
-    // Virtual Keyboard Accessory Bar logic
+    // Mobile Virtual Keyboard Accessory Bar
     function toggleCtrl(forced) {
       ctrlSticky = typeof forced === "boolean" ? forced : !ctrlSticky;
       accCtrlBtn.classList.toggle("active", ctrlSticky);
@@ -1033,7 +1303,6 @@
       }
       if (term) term.focus();
     });
-
   </script>
 </body>
 </html>
