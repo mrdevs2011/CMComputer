@@ -235,22 +235,25 @@
 
     /* Error Alert */
     .err-msg {
-      display: none;
+      display: none !important;
       margin-top: 14px;
-      padding: 11px 14px;
+      padding: 12px 14px;
       border-radius: 8px;
-      background: rgba(248, 81, 73, 0.1);
-      border: 1px solid rgba(248, 81, 73, 0.3);
-      color: #ff7b72;
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid #ef4444;
+      color: #fee2e2;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       line-height: 1.4;
       animation: shake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
     }
-    .err-msg.visible {
-      display: flex;
+    .err-msg:empty {
+      display: none !important;
+    }
+    .err-msg.visible:not(:empty) {
+      display: flex !important;
       align-items: center;
-      gap: 9px;
+      gap: 10px;
     }
 
     @keyframes shake {
@@ -932,8 +935,12 @@
     }
 
     function showLoginError(msg) {
+      if (!msg) {
+        clearLoginError();
+        return;
+      }
+      loginErr.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span style="color:#fee2e2;font-weight:600">${escapeHtml(msg)}</span>`;
       loginErr.className = "err-msg visible";
-      loginErr.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${escapeHtml(msg)}</span>`;
     }
 
     function clearLoginError() {
