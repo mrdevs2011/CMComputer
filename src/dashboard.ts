@@ -430,6 +430,19 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
 
+  if (method === "GET" && path === "/favicon.ico") {
+    try {
+      const ico = await readFile(join(__dirname, "..", "favicon.ico"));
+      res.writeHead(200, { "Content-Type": "image/x-icon" });
+      res.end(ico);
+      return;
+    } catch {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+  }
+
   if (method === "GET" && (path === "/" || path === "/index.html")) {
     try {
       const content = await readFile(INDEX_HTML_PATH, "utf8");
